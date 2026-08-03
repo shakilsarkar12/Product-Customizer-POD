@@ -94,10 +94,7 @@ export default function UserDropdown() {
             <span className="block font-bold text-gray-800 dark:text-gray-100 text-sm truncate">
               {storeData.siteName}
             </span>
-            <span className="block text-xs font-mono text-brand-500 truncate">
-              {storeData.shopDomain}
-            </span>
-            <span className="mt-0.5 block text-[11px] text-gray-500 dark:text-gray-400 truncate">
+            <span className="mt-0.5 block text-xs text-gray-500 dark:text-gray-400 truncate">
               {storeData.supportEmail}
             </span>
           </div>

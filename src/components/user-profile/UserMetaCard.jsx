@@ -54,10 +54,6 @@ export default function UserMetaCard() {
                 {storeData.siteName}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
-                <p className="text-xs font-mono text-brand-500 font-semibold">
-                  {storeData.shopDomain}
-                </p>
-                <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
                 <p className="text-xs text-gray-500 dark:text-gray-400">
                   {storeData.supportEmail}
                 </p>
