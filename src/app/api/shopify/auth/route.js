@@ -12,7 +12,14 @@ export async function GET(req) {
   const clientId = process.env.SHOPIFY_CLIENT_ID;
   const scopes = "read_products,write_products,read_orders,write_orders,read_draft_orders,write_draft_orders,read_themes";
 
-  const host = process.env.NEXT_PUBLIC_APP_URL || req.headers.get("host") ? `${req.headers.get("x-forwarded-proto") || "http"}://${req.headers.get("host")}` : "http://localhost:3000";
+  let host = process.env.NEXT_PUBLIC_APP_URL;
+  if (!host && req.headers.get("host")) {
+    const proto = req.headers.get("x-forwarded-proto") || "https";
+    host = `${proto}://${req.headers.get("host")}`;
+  }
+  if (!host) {
+    host = "https://podcraft.shakildev.online";
+  }
   const redirectUri = `${host}/api/shopify/callback`;
 
   // Standard 1-Click Shopify OAuth Install URL
