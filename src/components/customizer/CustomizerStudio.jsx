@@ -36,12 +36,18 @@ import {
 } from "react-icons/fi";
 
 export default function CustomizerStudio() {
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
+
   const searchParams = useSearchParams();
-  const paramProductId = searchParams.get("product_id") || searchParams.get("id");
-  const paramProductTitle = searchParams.get("title") || searchParams.get("product_title") || searchParams.get("name");
-  const paramProductImage = searchParams.get("image") || searchParams.get("product_image") || searchParams.get("img");
-  const paramPrice = searchParams.get("price");
-  const paramColor = searchParams.get("color");
+  const paramProductId = searchParams ? (searchParams.get("product_id") || searchParams.get("id")) : null;
+  const paramProductTitle = searchParams ? (searchParams.get("title") || searchParams.get("product_title") || searchParams.get("name")) : null;
+  const paramProductImage = searchParams ? (searchParams.get("image") || searchParams.get("product_image") || searchParams.get("img")) : null;
+  const paramPrice = searchParams ? searchParams.get("price") : null;
+  const paramColor = searchParams ? searchParams.get("color") : null;
 
   // Dynamic Shopify Product passed via URL parameters
   const dynamicShopifyProduct = useMemo(() => {
@@ -239,9 +245,14 @@ export default function CustomizerStudio() {
     triggerToast(`High-Res 300DPI Print Metadata & JSON exported! (${result.orderId})`);
   };
 
-  const handleAddToCart = () => {
-    triggerToast(`Added customized ${currentProduct.name} to Shopify Cart! Total: $${pricingData.totalPrice.toFixed(2)}`);
-  };
+  if (!mounted) {
+    return (
+      <div className="w-screen h-screen flex flex-col items-center justify-center bg-gray-900 text-white font-bold text-sm gap-3">
+        <div className="w-8 h-8 border-4 border-brand-500 border-t-transparent rounded-full animate-spin"></div>
+        <span>Loading Interactive Studio...</span>
+      </div>
+    );
+  }
 
   return (
     <div className="w-screen h-screen flex flex-col bg-gray-900 overflow-hidden select-none">
