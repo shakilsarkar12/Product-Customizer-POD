@@ -245,6 +245,10 @@ export default function CustomizerStudio() {
     triggerToast(`High-Res 300DPI Print Metadata & JSON exported! (${result.orderId})`);
   };
 
+  const handleAddToCart = () => {
+    triggerToast(`Added customized ${currentProduct.name} to Shopify Cart! Total: $${pricingData.totalPrice.toFixed(2)}`);
+  };
+
   if (!mounted) {
     return (
       <div className="w-screen h-screen flex flex-col items-center justify-center bg-gray-900 text-white font-bold text-sm gap-3">
