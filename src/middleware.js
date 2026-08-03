@@ -21,17 +21,6 @@ export function middleware(request) {
     return NextResponse.next();
   }
 
-  const shop = searchParams.get("shop");
-  const sessionCookie = request.cookies.get("shopify_session")?.value;
-
-  // If visiting from Shopify Admin or embedding with shop parameter
-  if (shop && !sessionCookie) {
-    // Auto-trigger Shopify OAuth if session cookie is not set
-    const authUrl = new URL("/api/shopify/auth", request.url);
-    authUrl.searchParams.set("shop", shop);
-    return NextResponse.redirect(authUrl);
-  }
-
   return NextResponse.next();
 }
 

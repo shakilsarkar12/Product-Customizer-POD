@@ -70,20 +70,9 @@ export async function GET(req) {
 
       console.log(`[Shopify 1-Click Install] Successfully installed & saved live store details (${shopDetails.name || cleanShop}) to MongoDB!`);
 
-      // Redirect merchant straight to App Base Dashboard URL (https://podcraft.shakildev.online)
+      // Redirect merchant straight to App Base Dashboard URL using native Shopify OAuth parameters
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://podcraft.shakildev.online";
-      const redirectResponse = NextResponse.redirect(`${baseUrl}/?shop=${cleanShop}&installed=true`);
-
-      // Set secure HTTP-Only session cookie
-      redirectResponse.cookies.set("shopify_session", cleanShop, {
-        httpOnly: true,
-        secure: true,
-        sameSite: "none",
-        path: "/",
-        maxAge: 30 * 24 * 60 * 60, // 30 Days
-      });
-
-      return redirectResponse;
+      return NextResponse.redirect(`${baseUrl}/?shop=${cleanShop}&installed=true`);
     } else {
       const errorText = await tokenResponse.text();
       return NextResponse.json({ error: "OAuth Token Exchange Failed", details: errorText }, { status: 400 });
