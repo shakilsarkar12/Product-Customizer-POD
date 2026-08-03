@@ -41,6 +41,11 @@ export function middleware(request) {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 
+  // If request comes from Shopify App Proxy (has path_prefix or product_id) but hits root "/", rewrite to /customizer
+  if (pathname === "/" && (pathPrefix || productId)) {
+    return NextResponse.rewrite(new URL(`/customizer${request.nextUrl.search}`, request.url));
+  }
+
   return NextResponse.next();
 }
 
