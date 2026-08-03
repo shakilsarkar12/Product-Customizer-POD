@@ -29,18 +29,14 @@ export default function SettingsPage() {
   const [toastMessage, setToastMessage] = useState("");
   const [showToast, setShowToast] = useState(false);
 
-  // Form State
+  // Form State - Purely dynamic from Shopify OAuth API
   const [settings, setSettings] = useState({
-    shopifyStoreDomain: "t-customizer-mjng1g1b.myshopify.com",
-    shopifyClientId: "",
-    shopifyClientSecret: "",
-    shopifyAccessToken: "",
-    mongoDbUri: "mongodb+srv://admin:password@cluster0.mongodb.net/shopify_customizer",
-    siteName: "Product Customizer POD",
-    dashboardTitle: "T-Customizer Store Overview",
-    supportEmail: "support@t-customizer-mjng1g1b.myshopify.com",
-    timezone: "UTC+06:00 (Dhaka)",
-    currency: "USD ($)",
+    shopifyStoreDomain: "",
+    siteName: "",
+    dashboardTitle: "",
+    supportEmail: "",
+    timezone: "",
+    currency: "",
     language: "English",
     compactSidebar: false,
     autoSave: true,
@@ -61,13 +57,13 @@ export default function SettingsPage() {
           if (data && data.success) {
             setSettings((prev) => ({
               ...prev,
-              siteName: data.siteName || prev.siteName,
-              dashboardTitle: data.dashboardTitle || prev.dashboardTitle,
-              supportEmail: data.supportEmail || prev.supportEmail,
-              timezone: data.timezone || prev.timezone,
-              currency: data.currency || prev.currency,
-              language: data.language || prev.language,
-              shopifyStoreDomain: data.shopDomain || prev.shopifyStoreDomain,
+              siteName: data.siteName || "",
+              dashboardTitle: data.dashboardTitle || "",
+              supportEmail: data.supportEmail || "",
+              timezone: data.timezone || "",
+              currency: data.currency || "",
+              language: data.language || "English",
+              shopifyStoreDomain: data.shopDomain || "",
             }));
           }
         }
