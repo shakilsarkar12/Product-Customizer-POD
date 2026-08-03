@@ -31,14 +31,14 @@ export default function SettingsPage() {
 
   // Form State
   const [settings, setSettings] = useState({
-    shopifyStoreDomain: "your-store.myshopify.com",
+    shopifyStoreDomain: "t-customizer-mjng1g1b.myshopify.com",
     shopifyClientId: "",
     shopifyClientSecret: "",
     shopifyAccessToken: "",
     mongoDbUri: "mongodb+srv://admin:password@cluster0.mongodb.net/shopify_customizer",
-    siteName: "TailAdmin Customization",
-    dashboardTitle: "E-Commerce Overview",
-    supportEmail: "admin@company.com",
+    siteName: "Product Customizer POD",
+    dashboardTitle: "T-Customizer Store Overview",
+    supportEmail: "support@t-customizer-mjng1g1b.myshopify.com",
     timezone: "UTC+06:00 (Dhaka)",
     currency: "USD ($)",
     language: "English",

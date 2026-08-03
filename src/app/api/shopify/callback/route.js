@@ -30,7 +30,26 @@ export async function GET(req) {
       const data = await tokenResponse.json();
       const accessToken = data.access_token;
 
-      // Save token directly to MongoDB keyed by merchant shopDomain
+      // Fetch live store information directly from Shopify Admin API using the new Access Token
+      let shopDetails = {};
+      try {
+        const shopRes = await fetch(`https://${cleanShop}/admin/api/2024-01/shop.json`, {
+          headers: {
+            "X-Shopify-Access-Token": accessToken,
+            "Content-Type": "application/json",
+          },
+        });
+        if (shopRes.ok) {
+          const shopData = await shopRes.json();
+          if (shopData.shop) {
+            shopDetails = shopData.shop;
+          }
+        }
+      } catch (shopErr) {
+        console.warn("[Shopify Shop API Error]:", shopErr.message);
+      }
+
+      // Save token & live store metadata directly to MongoDB
       const now = Date.now();
       const TOKEN_EXPIRY_MS = 23 * 60 * 60 * 1000;
 
@@ -39,12 +58,17 @@ export async function GET(req) {
         clientId: clientId || "",
         clientSecret: clientSecret || "",
         accessToken,
+        siteName: shopDetails.name || `${cleanShop.split(".")[0]} Customizer`,
+        dashboardTitle: shopDetails.name ? `${shopDetails.name} Overview` : `${cleanShop.split(".")[0]} Overview`,
+        supportEmail: shopDetails.email || `support@${cleanShop}`,
+        currency: shopDetails.currency ? `${shopDetails.currency} (${shopDetails.money_format ? shopDetails.money_format.charAt(0) : "$"})` : "USD ($)",
+        timezone: shopDetails.iana_timezone || shopDetails.timezone || "UTC+06:00 (Dhaka)",
         lastRefreshedAt: now,
         expiresAt: now + TOKEN_EXPIRY_MS,
         installedAt: new Date(),
       });
 
-      console.log(`[Shopify 1-Click Install] Successfully installed & saved access token to MongoDB for store: ${cleanShop}`);
+      console.log(`[Shopify 1-Click Install] Successfully installed & saved live store details (${shopDetails.name || cleanShop}) to MongoDB!`);
 
       // Redirect merchant straight to App Dashboard
       const host = req.headers.get("host") ? `${req.headers.get("x-forwarded-proto") || "http"}://${req.headers.get("host")}` : "http://localhost:3000";
