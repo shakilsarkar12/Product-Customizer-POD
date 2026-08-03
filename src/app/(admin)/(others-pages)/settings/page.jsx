@@ -423,59 +423,33 @@ export default function SettingsPage() {
             </div>
           )}
 
-          {/* Security Tab */}
+          {/* Security Tab - Shopify OAuth 2.0 Status */}
           {activeTab === "security" && (
             <div className="space-y-6">
-              <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-800 space-y-4">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  Authentication & Security
-                </h3>
-
-                <div className="flex items-center justify-between">
+              <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-800 space-y-4 bg-gray-50/50 dark:bg-gray-900/40">
+                <div className="flex items-center justify-between border-b border-gray-200 pb-3 dark:border-gray-800">
                   <div>
-                    <span className="text-sm font-medium text-gray-800 dark:text-white/90">
-                      Two-Factor Authentication (2FA)
-                    </span>
-                    <p className="text-xs text-gray-500 dark:text-gray-400">
-                      Add an extra layer of security using authentication apps or SMS.
+                    <h3 className="text-base font-bold text-gray-800 dark:text-white/90 flex items-center gap-2">
+                      <HiOutlineShieldCheck className="w-5 h-5 text-emerald-500" /> Shopify OAuth 2.0 Security Active
+                    </h3>
+                    <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+                      Your store access is secured by Shopify Admin OAuth 2.0 protocol. Manual passwords & 2FA are managed natively by Shopify.
                     </p>
                   </div>
-                  <Switch
-                    defaultChecked={settings.twoFactorAuth}
-                    onChange={(checked) => handleChange("twoFactorAuth", checked)}
-                  />
+                  <span className="px-3 py-1 bg-emerald-100 dark:bg-emerald-950 text-emerald-700 dark:text-emerald-300 rounded-full text-xs font-bold flex items-center gap-1">
+                    <HiOutlineCheck className="w-4 h-4 text-emerald-500" /> Fully Secured
+                  </span>
                 </div>
 
-                <hr className="border-gray-200 dark:border-gray-800" />
-
-                <div>
-                  <Label htmlFor="sessionTimeout">Idle Session Timeout (Minutes)</Label>
-                  <Select
-                    id="sessionTimeout"
-                    options={[
-                      { value: "15", label: "15 Minutes" },
-                      { value: "30", label: "30 Minutes" },
-                      { value: "60", label: "1 Hour" },
-                      { value: "120", label: "2 Hours" },
-                    ]}
-                    defaultValue={settings.sessionTimeout}
-                    onChange={(val) => handleChange("sessionTimeout", val)}
-                  />
-                </div>
-              </div>
-
-              <div className="rounded-xl border border-gray-200 p-5 dark:border-gray-800 space-y-4">
-                <h3 className="text-base font-semibold text-gray-800 dark:text-white/90">
-                  Password Update
-                </h3>
-                <div className="grid grid-cols-1 gap-4 md:grid-cols-2">
-                  <div>
-                    <Label htmlFor="currentPass">Current Password</Label>
-                    <Input id="currentPass" type="password" placeholder="••••••••" />
+                <div className="grid grid-cols-1 gap-4 md:grid-cols-2 pt-2">
+                  <div className="p-4 rounded-lg bg-white border border-gray-200 dark:border-gray-800 dark:bg-gray-800/50">
+                    <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Authentication Mechanism</span>
+                    <span className="mt-1 block text-sm font-bold text-gray-800 dark:text-gray-200">Shopify OAuth 1-Click Handshake</span>
                   </div>
-                  <div>
-                    <Label htmlFor="newPass">New Password</Label>
-                    <Input id="newPass" type="password" placeholder="••••••••" />
+
+                  <div className="p-4 rounded-lg bg-white border border-gray-200 dark:border-gray-800 dark:bg-gray-800/50">
+                    <span className="block text-xs font-medium text-gray-500 dark:text-gray-400">Token Auto-Refresh Cycle</span>
+                    <span className="mt-1 block text-sm font-bold text-emerald-600 dark:text-emerald-400">Every 23 Hours (MongoDB Engine)</span>
                   </div>
                 </div>
               </div>
