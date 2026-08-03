@@ -10,29 +10,34 @@ export function middleware(request) {
     return NextResponse.redirect(new URL(redirectUrl, request.url));
   }
 
-  // Allow public routes: static assets, unauthorized page, customizer storefront proxy, and shopify API routes
+  // Always allow Next.js internal static assets, images, unauthorized page, and public APIs
   if (
     pathname.startsWith("/_next") ||
     pathname.startsWith("/images") ||
     pathname.startsWith("/unauthorized") ||
-    pathname.startsWith("/customizer") ||
     pathname.startsWith("/api/") ||
     pathname.includes(".")
   ) {
     return NextResponse.next();
   }
 
-  // Check for Shopify Admin authentication context parameters or headers
+  // Check for Shopify context (Admin OAuth or Storefront App Proxy)
   const shop = searchParams.get("shop");
   const hmac = searchParams.get("hmac");
   const hostParam = searchParams.get("host");
   const idToken = searchParams.get("id_token");
+  const signature = searchParams.get("signature");
+  const pathPrefix = searchParams.get("path_prefix");
+  const productId = searchParams.get("product_id");
   const shopHeader = request.headers.get("x-shopify-shop-domain");
 
-  const isFromShopifyAdmin = Boolean(shop || hmac || hostParam || idToken || shopHeader);
+  // Valid Shopify request MUST carry shop, hmac, signature, path_prefix, or product_id
+  const isFromShopify = Boolean(
+    shop || hmac || hostParam || idToken || signature || pathPrefix || productId || shopHeader
+  );
 
-  // If someone attempts direct browser access outside of Shopify Admin, block & redirect to /unauthorized
-  if (!isFromShopifyAdmin) {
+  // If someone attempts direct URL access to /customizer or dashboard outside of a Shopify Store, block & redirect to /unauthorized
+  if (!isFromShopify) {
     return NextResponse.redirect(new URL("/unauthorized", request.url));
   }
 
