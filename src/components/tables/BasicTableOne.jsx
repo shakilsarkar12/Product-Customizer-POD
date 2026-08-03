@@ -118,8 +118,8 @@ export default function BasicTableOne() {
               {tableData.map((order) => (<TableRow key={order.id}>
                   <TableCell className="px-5 py-4 sm:px-6 text-start">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 overflow-hidden rounded-full">
-                        <Image width={40} height={40} src={order.user.image} alt={order.user.name}/>
+                      <div className="w-10 h-10 flex items-center justify-center bg-brand-500 text-white font-bold text-sm rounded-full shadow-xs">
+                        {order.user.name.charAt(0)}
                       </div>
                       <div>
                         <span className="block font-medium text-gray-800 text-theme-sm dark:text-white/90">
@@ -136,8 +136,8 @@ export default function BasicTableOne() {
                   </TableCell>
                   <TableCell className="px-4 py-3 text-gray-500 text-start text-theme-sm dark:text-gray-400">
                     <div className="flex -space-x-2">
-                      {order.team.images.map((teamImage, index) => (<div key={index} className="w-6 h-6 overflow-hidden border-2 border-white rounded-full dark:border-gray-900">
-                          <Image width={24} height={24} src={teamImage} alt={`Team member ${index + 1}`} className="w-full"/>
+                      {order.team.images.map((_, index) => (<div key={index} className="w-6 h-6 flex items-center justify-center bg-brand-400 text-white text-[10px] font-bold border-2 border-white rounded-full dark:border-gray-900">
+                          U
                         </div>))}
                     </div>
                   </TableCell>

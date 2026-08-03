@@ -21,13 +21,25 @@ const statusColorClasses = {
     offline: "bg-error-400",
     busy: "bg-warning-500",
 };
-const Avatar = ({ src, alt = "User Avatar", size = "medium", status = "none", }) => {
-    return (<div className={`relative  rounded-full ${sizeClasses[size]}`}>
-      {/* Avatar Image */}
-      <Image width="0" height="0" sizes="100vw" src={src} alt={alt} className="object-cover w-full rounded-full"/>
+const Avatar = ({ src, alt = "User Avatar", size = "medium", status = "none" }) => {
+  const isMockImage = !src || src.includes("/images/user/");
+  const initial = alt ? alt.charAt(0).toUpperCase() : "S";
+
+  return (
+    <div className={`relative flex items-center justify-center rounded-full ${sizeClasses[size]}`}>
+      {isMockImage ? (
+        <span className="flex items-center justify-center w-full h-full rounded-full bg-brand-500 text-white font-bold text-xs shadow-xs">
+          {initial === "U" ? "S" : initial}
+        </span>
+      ) : (
+        <Image width="0" height="0" sizes="100vw" src={src} alt={alt} className="object-cover w-full rounded-full" />
+      )}
 
       {/* Status Indicator */}
-      {status !== "none" && (<span className={`absolute bottom-0 right-0 rounded-full border-[1.5px] border-white dark:border-gray-900 ${statusSizeClasses[size]} ${statusColorClasses[status] || ""}`}></span>)}
-    </div>);
+      {status !== "none" && (
+        <span className={`absolute bottom-0 right-0 rounded-full border-[1.5px] border-white dark:border-gray-900 ${statusSizeClasses[size]} ${statusColorClasses[status] || ""}`}></span>
+      )}
+    </div>
+  );
 };
 export default Avatar;

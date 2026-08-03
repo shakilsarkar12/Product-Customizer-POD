@@ -7,30 +7,59 @@ import Input from "../form/input/InputField";
 import Label from "../form/Label";
 import Image from "next/image";
 export default function UserMetaCard() {
-    const { isOpen, openModal, closeModal } = useModal();
-    const handleSave = () => {
-        // Handle save logic here
-        console.log("Saving changes...");
-        closeModal();
-    };
-    return (<>
+  const { isOpen, openModal, closeModal } = useModal();
+  const [storeData, setStoreData] = React.useState({
+    siteName: "Product Customizer POD",
+    shopDomain: "your-store.myshopify.com",
+    supportEmail: "support@store.com",
+  });
+
+  React.useEffect(() => {
+    async function loadProfileData() {
+      try {
+        const res = await fetch("/api/shopify/credentials");
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.success) {
+            setStoreData({
+              siteName: data.siteName || "Product Customizer POD",
+              shopDomain: data.shopDomain || "your-store.myshopify.com",
+              supportEmail: data.supportEmail || `support@${data.shopDomain || "store.com"}`,
+            });
+          }
+        }
+      } catch (err) {
+        console.error("Failed to load user meta profile:", err);
+      }
+    }
+    loadProfileData();
+  }, []);
+
+  const initial = (storeData.siteName || "S").charAt(0).toUpperCase();
+
+  const handleSave = () => {
+    closeModal();
+  };
+
+  return (
+    <>
       <div className="p-5 border border-gray-200 rounded-2xl dark:border-gray-800 lg:p-6">
         <div className="flex flex-col gap-5 xl:flex-row xl:items-center xl:justify-between">
           <div className="flex flex-col items-center w-full gap-6 xl:flex-row">
-            <div className="w-20 h-20 overflow-hidden border border-gray-200 rounded-full dark:border-gray-800">
-              <Image width={80} height={80} src="/images/user/owner.jpg" alt="user"/>
+            <div className="w-20 h-20 flex items-center justify-center bg-brand-500 text-white font-extrabold text-3xl rounded-full shadow-md">
+              {initial}
             </div>
             <div className="order-3 xl:order-2">
-              <h4 className="mb-2 text-lg font-semibold text-center text-gray-800 dark:text-white/90 xl:text-left">
-                Musharof Chowdhury
+              <h4 className="mb-1 text-lg font-bold text-center text-gray-800 dark:text-white/90 xl:text-left">
+                {storeData.siteName}
               </h4>
               <div className="flex flex-col items-center gap-1 text-center xl:flex-row xl:gap-3 xl:text-left">
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Team Manager
+                <p className="text-xs font-mono text-brand-500 font-semibold">
+                  {storeData.shopDomain}
                 </p>
                 <div className="hidden h-3.5 w-px bg-gray-300 dark:bg-gray-700 xl:block"></div>
-                <p className="text-sm text-gray-500 dark:text-gray-400">
-                  Arizona, United States
+                <p className="text-xs text-gray-500 dark:text-gray-400">
+                  {storeData.supportEmail}
                 </p>
               </div>
             </div>
