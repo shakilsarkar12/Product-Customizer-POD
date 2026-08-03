@@ -1,5 +1,6 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
+  assetPrefix: process.env.NEXT_PUBLIC_APP_URL || "https://podcraft.shakildev.online",
   /* config options here */
   webpack(config) {
     config.module.rules.push({
