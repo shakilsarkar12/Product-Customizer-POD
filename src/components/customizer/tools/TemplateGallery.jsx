@@ -1,25 +1,47 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import { TEMPLATES_DATA } from "@/data/customizerData";
-import { FiLayout, FiCheck } from "react-icons/fi";
+import { FiLayout, FiCheck, FiPlus, FiBookmark } from "react-icons/fi";
 
-export default function TemplateGallery({ onLoadTemplate }) {
+export default function TemplateGallery({ onLoadTemplate, onSaveAsTemplate }) {
   const [selectedCategory, setSelectedCategory] = useState("All");
+  const [userTemplates, setUserTemplates] = useState([]);
 
-  const categories = ["All", "Wedding", "Birthday", "Business", "Eid", "Halloween"];
+  useEffect(() => {
+    try {
+      const saved = localStorage.getItem("customizer_user_templates");
+      if (saved) {
+        setUserTemplates(JSON.parse(saved));
+      }
+    } catch (e) {
+      console.error(e);
+    }
+  }, []);
 
-  const filteredTemplates = selectedCategory === "All"
-    ? TEMPLATES_DATA
-    : TEMPLATES_DATA.filter((t) => t.category === selectedCategory);
+  const categories = ["All", "Streetwear", "Vintage", "Sports", "Wedding", "Business", "Holiday"];
+
+  const allTemplates = [...userTemplates, ...TEMPLATES_DATA];
+
+  const filteredTemplates =
+    selectedCategory === "All"
+      ? allTemplates
+      : allTemplates.filter((t) => t.category === selectedCategory);
 
   return (
     <div className="p-4 flex flex-col gap-4 max-h-[600px] overflow-y-auto no-scrollbar">
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
         <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-2">
-          <FiLayout className="w-4 h-4 text-brand-500" /> Merchant Templates
+          <FiLayout className="w-4 h-4 text-brand-500" /> Template Gallery ({filteredTemplates.length})
         </h3>
-        <span className="text-xs text-gray-500">{filteredTemplates.length} designs</span>
+        {onSaveAsTemplate && (
+          <button
+            onClick={onSaveAsTemplate}
+            className="text-[11px] font-bold bg-brand-50 dark:bg-brand-950/50 hover:bg-brand-100 text-brand-700 dark:text-brand-300 border border-brand-200 dark:border-brand-900 px-2.5 py-1 rounded-lg flex items-center gap-1 transition-colors"
+          >
+            <FiBookmark className="w-3 h-3" /> Save Current
+          </button>
+        )}
       </div>
 
       {/* Category Pills */}
@@ -49,7 +71,7 @@ export default function TemplateGallery({ onLoadTemplate }) {
           >
             <div className="h-28 bg-gray-200 dark:bg-gray-700 relative overflow-hidden flex items-center justify-center p-2">
               <img
-                src={tpl.thumbnail}
+                src={tpl.thumbnail || "/images/product/product-01.jpg"}
                 alt={tpl.title}
                 className="w-full h-full object-contain group-hover:scale-105 transition-transform duration-300"
               />

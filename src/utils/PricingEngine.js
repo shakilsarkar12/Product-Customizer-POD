@@ -6,6 +6,7 @@ export function calculateCustomizerPrice({
   selectedMaterialId,
   layersByView = {},
   activeViewId = "front",
+  quantity = 1,
 }) {
   if (!product) {
     return {
@@ -14,7 +15,11 @@ export function calculateCustomizerPrice({
       printAreaAddon: 0,
       extraColorsAddon: 0,
       layersAddon: 0,
+      unitPrice: 0,
       totalPrice: 0,
+      discountPercent: 0,
+      discountAmount: 0,
+      breakdown: [],
     };
   }
 
@@ -58,7 +63,17 @@ export function calculateCustomizerPrice({
   // Layer complexity surcharge ($1 per layer beyond 2 layers)
   const layersAddon = totalLayersCount > 2 ? (totalLayersCount - 2) * 1.0 : 0;
 
-  const totalPrice = basePrice + materialAddon + printAreaAddon + extraColorsAddon + layersAddon;
+  const unitPrice = basePrice + materialAddon + printAreaAddon + extraColorsAddon + layersAddon;
+
+  // Quantity tier discounts
+  let discountPercent = 0;
+  if (quantity >= 25) discountPercent = 30;
+  else if (quantity >= 10) discountPercent = 20;
+  else if (quantity >= 5) discountPercent = 10;
+
+  const subtotal = unitPrice * quantity;
+  const discountAmount = (subtotal * discountPercent) / 100;
+  const totalPrice = subtotal - discountAmount;
 
   return {
     basePrice,
@@ -66,6 +81,10 @@ export function calculateCustomizerPrice({
     printAreaAddon,
     extraColorsAddon,
     layersAddon,
+    unitPrice: parseFloat(unitPrice.toFixed(2)),
+    quantity,
+    discountPercent,
+    discountAmount: parseFloat(discountAmount.toFixed(2)),
     totalPrice: parseFloat(totalPrice.toFixed(2)),
     breakdown: [
       { label: "Base Product Price", amount: basePrice },
