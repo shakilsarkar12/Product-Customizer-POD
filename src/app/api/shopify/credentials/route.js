@@ -5,13 +5,14 @@ import { getCredentialsFromDb } from "@/lib/mongodb";
 export async function POST(req) {
   try {
     const body = await req.json();
-    const { shopDomain, clientId, clientSecret, siteName, dashboardTitle, supportEmail, timezone, currency, language } = body;
+    const { shopDomain, clientId, clientSecret, accessToken, siteName, dashboardTitle, supportEmail, timezone, currency, language } = body;
 
     // Refresh & persist directly to MongoDB
     const tokenInfo = await refreshShopifyAccessToken({
       shopDomain,
       clientId,
       clientSecret,
+      accessToken,
       siteName,
       dashboardTitle,
       supportEmail,

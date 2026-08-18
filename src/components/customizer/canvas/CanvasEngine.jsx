@@ -177,10 +177,10 @@ export default function CanvasEngine({
   return (
     <div
       onClick={() => onSelectLayer(null)}
-      className="relative flex-1 flex flex-col items-center justify-center bg-gray-100 dark:bg-gray-900/80 p-4 md:p-8 select-none overflow-hidden min-h-[520px]"
+      className="relative flex-1 w-full h-full flex flex-col items-center justify-center select-none overflow-hidden min-h-0 p-1 sm:p-2"
     >
       {/* Zoom & Viewport Toolbar */}
-      <div className="absolute top-4 right-4 z-30 flex items-center gap-2 bg-white/90 dark:bg-gray-800/90 backdrop-blur-md px-3 py-1.5 rounded-2xl border border-gray-200 dark:border-gray-700 shadow-xl text-xs">
+      <div className="absolute top-2 right-2 z-30 flex items-center gap-1.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md px-2.5 py-1 rounded-2xl border border-gray-200/80 dark:border-gray-700/80 shadow-xl text-xs">
         <button
           onClick={(e) => {
             e.stopPropagation();
@@ -191,7 +191,7 @@ export default function CanvasEngine({
         >
           <FiZoomOut className="w-4 h-4" />
         </button>
-        <span className="font-mono font-bold text-gray-700 dark:text-gray-200 min-w-[42px] text-center">
+        <span className="font-mono font-bold text-gray-700 dark:text-gray-200 min-w-[38px] text-center text-[11px]">
           {Math.round(zoomLevel * 100)}%
         </span>
         <button
@@ -225,22 +225,22 @@ export default function CanvasEngine({
         <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-brand-500 z-40 pointer-events-none shadow-sm animate-pulse" />
       )}
 
-      {/* Main Interactive Canvas Box */}
+      {/* Main Interactive Canvas Box - Expands to occupy full available workbench viewport */}
       <div
         ref={containerRef}
         style={{ transform: `scale(${zoomLevel})` }}
-        className="relative w-[360px] sm:w-[440px] md:w-[500px] h-[500px] sm:h-[560px] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/90 dark:border-gray-700/90 flex items-center justify-center transition-transform duration-150 ease-out overflow-hidden"
+        className="relative w-full h-full max-w-[800px] max-h-[100%] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/90 dark:border-gray-700/90 flex items-center justify-center transition-transform duration-150 ease-out overflow-hidden"
       >
         {/* Product Image Mockup Background */}
         <div
-          className="absolute inset-0 flex items-center justify-center p-4 transition-colors duration-300"
+          className="absolute inset-0 flex items-center justify-center p-3 sm:p-6 transition-colors duration-300"
           style={{ backgroundColor: selectedColor?.hex || "#ffffff" }}
         >
           {selectedColor?.image ? (
             <img
               src={selectedColor.image}
               alt={product?.name}
-              className="w-full h-full object-contain pointer-events-none opacity-95 transition-all duration-300 select-none"
+              className="w-full h-full max-h-full max-w-full object-contain pointer-events-none opacity-95 transition-all duration-300 select-none"
             />
           ) : (
             <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 opacity-25">
@@ -285,6 +285,10 @@ export default function CanvasEngine({
             <div
               key={layer.id}
               onMouseDown={(e) => handleMouseDown(e, layer.id)}
+              onClick={(e) => {
+                e.stopPropagation();
+                onSelectLayer(layer.id);
+              }}
               style={{
                 left: `${layer.x}%`,
                 top: `${layer.y}%`,
@@ -293,12 +297,12 @@ export default function CanvasEngine({
                 }) scaleY(${layer.flipY ? -1 : 1})`,
                 opacity: (layer.opacity ?? 100) / 100,
                 mixBlendMode: layer.blendMode || "normal",
-                cursor: layer.locked ? "not-allowed" : isDragging ? "grabbing" : "grab",
+                cursor: layer.locked ? "not-allowed" : isDragging ? "grabbing" : "pointer",
               }}
-              className={`absolute z-20 group transition-shadow ${
+              className={`absolute transition-shadow select-none ${
                 isSelected
-                  ? "ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 rounded-xl"
-                  : "hover:ring-1 hover:ring-brand-400/80"
+                  ? "z-40 ring-2 ring-brand-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-900 rounded-xl shadow-lg"
+                  : "z-20 hover:ring-1 hover:ring-brand-400/80 cursor-pointer"
               }`}
             >
               {/* Layer Floating Quick Action Bar */}

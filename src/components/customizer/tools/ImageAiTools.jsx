@@ -52,7 +52,7 @@ export default function ImageAiTools({ onAddImage, selectedLayer, onUpdateLayer 
   };
 
   return (
-    <div className="p-4 flex flex-col gap-4 max-h-[600px] overflow-y-auto no-scrollbar">
+    <div className="p-4 flex flex-col gap-4 h-full overflow-y-auto">
       {/* Sub-tab Switcher */}
       <div className="flex bg-gray-100 dark:bg-gray-800 p-1 rounded-xl">
         <button

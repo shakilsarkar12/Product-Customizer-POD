@@ -1,7 +1,7 @@
 "use client";
 
 import { useSearchParams } from "next/navigation";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
 import { PRODUCTS_DATA, TEMPLATES_DATA, CLIPARTS_DATA } from "@/data/customizerData";
@@ -52,6 +52,7 @@ export default function CustomizerStudio() {
   const paramProductImage = searchParams ? searchParams.get("image") || searchParams.get("product_image") || searchParams.get("img") : null;
   const paramPrice = searchParams ? searchParams.get("price") : null;
   const paramColor = searchParams ? searchParams.get("color") : null;
+  const paramTemplateId = searchParams ? searchParams.get("templateId") || searchParams.get("template") : null;
 
   // Dynamic Shopify Product passed via URL parameters
   const dynamicShopifyProduct = useMemo(() => {
@@ -83,13 +84,29 @@ export default function CustomizerStudio() {
     return null;
   }, [paramProductId, paramProductTitle, paramProductImage, paramPrice, paramColor]);
 
+  // Dynamic available products from database
+  const [availableProducts, setAvailableProducts] = useState(PRODUCTS_DATA);
+
+  useEffect(() => {
+    fetch("/api/products", { cache: "no-store" })
+      .then((res) => (res.ok ? res.json() : null))
+      .then((data) => {
+        if (data && data.products && data.products.length > 0) {
+          setAvailableProducts(data.products);
+        }
+      })
+      .catch((err) => console.warn("[Fetch Products Studio Error]:", err));
+  }, []);
+
   // Product selection state
-  const [selectedProductId, setSelectedProductId] = useState("t-shirt");
+  const [selectedProductId, setSelectedProductId] = useState(
+    paramProductId && PRODUCTS_DATA.some((p) => p.id === paramProductId) ? paramProductId : "t-shirt"
+  );
 
   const currentProduct = useMemo(() => {
     if (dynamicShopifyProduct) return dynamicShopifyProduct;
-    return PRODUCTS_DATA.find((p) => p.id === selectedProductId) || PRODUCTS_DATA[0];
-  }, [dynamicShopifyProduct, selectedProductId]);
+    return availableProducts.find((p) => p.id === selectedProductId) || availableProducts[0] || PRODUCTS_DATA[0];
+  }, [dynamicShopifyProduct, selectedProductId, availableProducts]);
 
   const [selectedColor, setSelectedColor] = useState(currentProduct.colors[0]);
   useEffect(() => {
@@ -284,9 +301,13 @@ export default function CustomizerStudio() {
     triggerToast("Layer duplicated!");
   };
 
-  const handleLoadTemplate = (tpl) => {
-    if (tpl.productType && PRODUCTS_DATA.some((p) => p.id === tpl.productType)) {
-      setSelectedProductId(tpl.productType);
+  const handleLoadTemplate = useCallback((tpl) => {
+    if (!tpl || !tpl.layers) return;
+    const productTypes = tpl.productTypes || (tpl.productType ? [tpl.productType] : ["all"]);
+    if (!productTypes.includes("all") && !productTypes.includes(selectedProductId) && productTypes[0]) {
+      if (PRODUCTS_DATA.some((p) => p.id === productTypes[0])) {
+        setSelectedProductId(productTypes[0]);
+      }
     }
     const newLayers = {
       front: tpl.layers.map((l, i) => ({ ...l, id: `tpl-layer-${i}-${Date.now()}` })),
@@ -294,7 +315,22 @@ export default function CustomizerStudio() {
     setLayersByView(newLayers);
     saveStateToHistory(newLayers);
     triggerToast(`Loaded template: "${tpl.title}"`);
-  };
+  }, [selectedProductId]);
+
+  // Auto-load template if templateId is passed in URL query parameters
+  useEffect(() => {
+    if (paramTemplateId) {
+      fetch(`/api/templates?id=${paramTemplateId}`)
+        .then((res) => (res.ok ? res.json() : null))
+        .then((tpl) => {
+          if (tpl && tpl.layers) {
+            handleLoadTemplate(tpl);
+            setActiveToolTab("template");
+          }
+        })
+        .catch((err) => console.warn("[Auto-load template error]:", err));
+    }
+  }, [paramTemplateId, handleLoadTemplate]);
 
   const handleSaveAsTemplate = () => {
     const newTemplate = {
@@ -311,6 +347,22 @@ export default function CustomizerStudio() {
       triggerToast("Template saved locally!");
     }
   };
+
+  const handleSelectLayer = useCallback((layerId) => {
+    setSelectedLayerId(layerId);
+    if (!layerId) return;
+
+    const target = currentLayers.find((l) => l.id === layerId);
+    if (!target) return;
+
+    if (target.type === "text") {
+      setActiveToolTab("text");
+    } else if (target.type === "image") {
+      setActiveToolTab("upload");
+    } else if (target.type === "clipart") {
+      setActiveToolTab("clipart");
+    }
+  }, [currentLayers]);
 
   const handleDeleteLayer = (layerId) => {
     setLayersByView((prev) => {
@@ -464,14 +516,14 @@ export default function CustomizerStudio() {
             <div className="p-4 flex flex-col gap-4">
               <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm">Select Product Catalog</h3>
               <div className="flex flex-col gap-2.5">
-                {PRODUCTS_DATA.map((prod) => (
+                {availableProducts.map((prod) => (
                   <div
                     key={prod.id}
                     onClick={() => {
                       setSelectedProductId(prod.id);
-                      setSelectedColor(prod.colors[0]);
-                      setSelectedMaterialId(prod.materials[0]?.id);
-                      setActiveViewId(prod.views[0]?.id || "front");
+                      if (prod.colors?.[0]) setSelectedColor(prod.colors[0]);
+                      if (prod.materials?.[0]) setSelectedMaterialId(prod.materials[0]?.id);
+                      if (prod.views?.[0]) setActiveViewId(prod.views[0]?.id || "front");
                     }}
                     className={`p-3 rounded-2xl border flex items-center justify-between cursor-pointer transition-all ${
                       selectedProductId === prod.id
@@ -484,7 +536,7 @@ export default function CustomizerStudio() {
                       <span className="text-[10px] text-gray-500 uppercase font-semibold">{prod.category}</span>
                     </div>
                     <span className="text-xs font-extrabold text-brand-600 dark:text-brand-400">
-                      ${prod.basePrice.toFixed(2)}
+                      ${prod.basePrice?.toFixed(2)}
                     </span>
                   </div>
                 ))}
@@ -512,16 +564,24 @@ export default function CustomizerStudio() {
             <TemplateGallery
               onLoadTemplate={handleLoadTemplate}
               onSaveAsTemplate={handleSaveAsTemplate}
+              selectedProductId={selectedProductId}
+              selectedProductName={currentProduct?.name || "Selected Product"}
             />
           )}
 
-          {activeToolTab === "clipart" && <ClipartLibrary onAddClipart={handleAddClipart} />}
+          {activeToolTab === "clipart" && (
+            <ClipartLibrary
+              onAddClipart={handleAddClipart}
+              selectedLayer={selectedLayer}
+              onUpdateLayer={handleUpdateLayer}
+            />
+          )}
 
           {activeToolTab === "layers" && (
             <LayersPanel
               layers={currentLayers}
               selectedLayerId={selectedLayerId}
-              onSelectLayer={setSelectedLayerId}
+              onSelectLayer={handleSelectLayer}
               onUpdateLayer={handleUpdateLayer}
               onDeleteLayer={handleDeleteLayer}
               onDuplicateLayer={handleDuplicateLayer}
@@ -534,9 +594,9 @@ export default function CustomizerStudio() {
         </div>
 
         {/* 3. Center Interactive Canvas Workbench */}
-        <div className="flex-1 flex flex-col min-w-0 bg-gray-100/70 dark:bg-gray-900/70 relative">
+        <div className="flex-1 flex flex-col min-w-0 bg-gray-100/70 dark:bg-gray-900/70 relative overflow-hidden h-full">
           {/* Top Workbench Toolbar */}
-          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-6 py-3 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10">
+          <div className="bg-white/80 dark:bg-gray-800/80 backdrop-blur-md px-6 py-2.5 border-b border-gray-200 dark:border-gray-700 flex items-center justify-between z-10 shrink-0">
             <div className="flex items-center gap-3">
               <h2 className="text-sm font-bold text-gray-800 dark:text-gray-100 truncate">
                 {currentProduct.name}
@@ -549,7 +609,7 @@ export default function CustomizerStudio() {
             <div className="flex items-center gap-2">
               <button
                 onClick={() => setShowGrid((g) => !g)}
-                className={`p-2 rounded-xl border text-xs font-semibold flex items-center gap-1 transition-colors ${
+                className={`px-3 py-1.5 rounded-xl border text-xs font-semibold flex items-center gap-1.5 transition-colors ${
                   showGrid
                     ? "bg-brand-50 dark:bg-brand-950 border-brand-300 text-brand-600 dark:text-brand-400"
                     : "bg-white dark:bg-gray-700 border-gray-200 text-gray-600 dark:text-gray-300"
@@ -561,8 +621,26 @@ export default function CustomizerStudio() {
             </div>
           </div>
 
-          {/* Multi View Tab Switcher */}
-          <div className="p-4 pb-0">
+          {/* Interactive Canvas Engine - Takes Full Available Screen Space */}
+          <div className="flex-1 min-h-0 relative flex items-center justify-center w-full overflow-hidden p-2">
+            <CanvasEngine
+              product={currentProduct}
+              selectedColor={selectedColor}
+              activeView={activeView}
+              layers={currentLayers}
+              selectedLayerId={selectedLayerId}
+              onSelectLayer={handleSelectLayer}
+              onUpdateLayer={handleUpdateLayer}
+              onDeleteLayer={handleDeleteLayer}
+              onDuplicateLayer={handleDuplicateLayer}
+              showGrid={showGrid}
+              zoomLevel={zoomLevel}
+              setZoomLevel={setZoomLevel}
+            />
+          </div>
+
+          {/* Multi View Tab Switcher & Base Color Selector (Placed at Bottom) */}
+          <div className="px-4 py-2.5 bg-white/95 dark:bg-gray-800/95 backdrop-blur-md border-t border-gray-200 dark:border-gray-700 shrink-0 z-20">
             <MultiProductView
               product={currentProduct}
               selectedColor={selectedColor}
@@ -572,22 +650,6 @@ export default function CustomizerStudio() {
               onOpen3DModal={() => setIs3DModalOpen(true)}
             />
           </div>
-
-          {/* Interactive Canvas Engine */}
-          <CanvasEngine
-            product={currentProduct}
-            selectedColor={selectedColor}
-            activeView={activeView}
-            layers={currentLayers}
-            selectedLayerId={selectedLayerId}
-            onSelectLayer={setSelectedLayerId}
-            onUpdateLayer={handleUpdateLayer}
-            onDeleteLayer={handleDeleteLayer}
-            onDuplicateLayer={handleDuplicateLayer}
-            showGrid={showGrid}
-            zoomLevel={zoomLevel}
-            setZoomLevel={setZoomLevel}
-          />
         </div>
 
         {/* 4. Right Pricing & Checkout Drawer */}

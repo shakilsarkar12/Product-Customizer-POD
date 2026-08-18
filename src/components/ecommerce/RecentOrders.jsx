@@ -1,135 +1,193 @@
-import { Table, TableBody, TableCell, TableHeader, TableRow, } from "../ui/table";
+"use client";
+import React, { useState } from "react";
+import { Table, TableBody, TableCell, TableHeader, TableRow } from "../ui/table";
 import Badge from "../ui/badge/Badge";
 import Image from "next/image";
-// Define the table data using the interface
-const tableData = [
-    {
-        id: 1,
-        name: "MacBook Pro 13”",
-        variants: "2 Variants",
-        category: "Laptop",
-        price: "$2399.00",
-        status: "Delivered",
-        image: "/images/product/product-01.jpg", // Replace with actual image URL
-    },
-    {
-        id: 2,
-        name: "Apple Watch Ultra",
-        variants: "1 Variant",
-        category: "Watch",
-        price: "$879.00",
-        status: "Pending",
-        image: "/images/product/product-02.jpg", // Replace with actual image URL
-    },
-    {
-        id: 3,
-        name: "iPhone 15 Pro Max",
-        variants: "2 Variants",
-        category: "SmartPhone",
-        price: "$1869.00",
-        status: "Delivered",
-        image: "/images/product/product-03.jpg", // Replace with actual image URL
-    },
-    {
-        id: 4,
-        name: "iPad Pro 3rd Gen",
-        variants: "2 Variants",
-        category: "Electronics",
-        price: "$1699.00",
-        status: "Canceled",
-        image: "/images/product/product-04.jpg", // Replace with actual image URL
-    },
-    {
-        id: 5,
-        name: "AirPods Pro 2nd Gen",
-        variants: "1 Variant",
-        category: "Accessories",
-        price: "$240.00",
-        status: "Delivered",
-        image: "/images/product/product-05.jpg", // Replace with actual image URL
-    },
-];
+import { useDashboard } from "@/context/DashboardContext";
+import { FiRefreshCw, FiSearch, FiShoppingBag, FiExternalLink } from "react-icons/fi";
+import Link from "next/link";
+
 export default function RecentOrders() {
-    return (<div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-3 pt-4 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
-      <div className="flex flex-col gap-2 mb-4 sm:flex-row sm:items-center sm:justify-between">
+  const { data, loading, syncing, refreshData } = useDashboard();
+  const [searchTerm, setSearchTerm] = useState("");
+  const [statusFilter, setStatusFilter] = useState("All");
+
+  const orders = data?.recentOrders || [];
+
+  const filteredOrders = orders.filter((order) => {
+    const matchesSearch =
+      (order.name || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.orderNumber || "").toLowerCase().includes(searchTerm.toLowerCase()) ||
+      (order.customerName || "").toLowerCase().includes(searchTerm.toLowerCase());
+
+    const matchesStatus = statusFilter === "All" || order.status === statusFilter;
+
+    return matchesSearch && matchesStatus;
+  });
+
+  return (
+    <div className="overflow-hidden rounded-2xl border border-gray-200 bg-white px-4 pb-4 pt-5 dark:border-gray-800 dark:bg-white/[0.03] sm:px-6">
+      {/* Header with Title, Live Status & Controls */}
+      <div className="flex flex-col gap-4 mb-4 lg:flex-row lg:items-center lg:justify-between">
         <div>
-          <h3 className="text-lg font-semibold text-gray-800 dark:text-white/90">
-            Recent Orders
-          </h3>
+          <div className="flex items-center gap-2">
+            <h3 className="text-lg font-bold text-gray-800 dark:text-white/90">
+              Recent Shopify & POD Orders
+            </h3>
+            <span className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-[10px] font-bold bg-emerald-50 text-emerald-600 dark:bg-emerald-950/60 dark:text-emerald-400">
+              <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+              Live Sync
+            </span>
+          </div>
+          <p className="text-xs text-gray-500 dark:text-gray-400 mt-0.5">
+            Real-time customized print items and incoming customer orders.
+          </p>
         </div>
 
-        <div className="flex items-center gap-3">
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            <svg className="stroke-current fill-white dark:fill-gray-800" width="20" height="20" viewBox="0 0 20 20" fill="none" xmlns="http://www.w3.org/2000/svg">
-              <path d="M2.29004 5.90393H17.7067" stroke="" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M17.7075 14.0961H2.29085" stroke="" strokeWidth="1.5" strokeLinecap="round" strokeLinejoin="round"/>
-              <path d="M12.0826 3.33331C13.5024 3.33331 14.6534 4.48431 14.6534 5.90414C14.6534 7.32398 13.5024 8.47498 12.0826 8.47498C10.6627 8.47498 9.51172 7.32398 9.51172 5.90415C9.51172 4.48432 10.6627 3.33331 12.0826 3.33331Z" fill="" stroke="" strokeWidth="1.5"/>
-              <path d="M7.91745 11.525C6.49762 11.525 5.34662 12.676 5.34662 14.0959C5.34661 15.5157 6.49762 16.6667 7.91745 16.6667C9.33728 16.6667 10.4883 15.5157 10.4883 14.0959C10.4883 12.676 9.33728 11.525 7.91745 11.525Z" fill="" stroke="" strokeWidth="1.5"/>
-            </svg>
-            Filter
+        <div className="flex flex-wrap items-center gap-2.5">
+          {/* Live Search */}
+          <div className="relative">
+            <FiSearch className="absolute left-3 top-1/2 -translate-y-1/2 text-gray-400 w-3.5 h-3.5" />
+            <input
+              type="text"
+              placeholder="Search orders..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-8 pr-3 py-1.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg focus:outline-none focus:border-brand-500 dark:text-white w-40 sm:w-48"
+            />
+          </div>
+
+          {/* Status Filter */}
+          <select
+            value={statusFilter}
+            onChange={(e) => setStatusFilter(e.target.value)}
+            className="py-1.5 px-2.5 text-xs bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-lg dark:text-white focus:outline-none"
+          >
+            <option value="All">All Statuses</option>
+            <option value="Delivered">Delivered</option>
+            <option value="Processing">Processing</option>
+            <option value="Pending">Pending</option>
+          </select>
+
+          {/* Sync Button */}
+          <button
+            onClick={() => refreshData()}
+            disabled={syncing}
+            className="inline-flex items-center gap-1.5 px-3 py-1.5 text-xs font-semibold text-gray-700 bg-gray-50 hover:bg-gray-100 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700 border border-gray-200 dark:border-gray-700 rounded-lg shadow-2xs transition-colors"
+            title="Sync Live Orders"
+          >
+            <FiRefreshCw className={`w-3.5 h-3.5 ${syncing ? "animate-spin text-brand-500" : ""}`} />
+            {syncing ? "Syncing..." : "Sync"}
           </button>
-          <button className="inline-flex items-center gap-2 rounded-lg border border-gray-300 bg-white px-4 py-2.5 text-theme-sm font-medium text-gray-700 shadow-theme-xs hover:bg-gray-50 hover:text-gray-800 dark:border-gray-700 dark:bg-gray-800 dark:text-gray-400 dark:hover:bg-white/[0.03] dark:hover:text-gray-200">
-            See all
-          </button>
+
+          <Link
+            href="/customizer-admin"
+            className="inline-flex items-center gap-1 px-3 py-1.5 text-xs font-bold text-brand-600 bg-brand-50 hover:bg-brand-100 dark:bg-brand-950/60 dark:text-brand-400 rounded-lg transition-colors"
+          >
+            All Orders <FiExternalLink className="w-3 h-3" />
+          </Link>
         </div>
       </div>
+
+      {/* Orders Table */}
       <div className="max-w-full overflow-x-auto">
         <Table>
-          {/* Table Header */}
-          <TableHeader className="border-gray-100 dark:border-gray-800 border-y">
+          <TableHeader className="border-gray-100 dark:border-gray-800 border-y bg-gray-50/50 dark:bg-gray-900/40">
             <TableRow>
-              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                Products
+              <TableCell isHeader className="py-3 font-semibold text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                Order & Product
               </TableCell>
-              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
-                Category
+              <TableCell isHeader className="py-3 font-semibold text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                Customer
               </TableCell>
-              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+              <TableCell isHeader className="py-3 font-semibold text-gray-500 text-start text-theme-xs dark:text-gray-400">
+                Date
+              </TableCell>
+              <TableCell isHeader className="py-3 font-semibold text-gray-500 text-start text-theme-xs dark:text-gray-400">
                 Price
               </TableCell>
-              <TableCell isHeader className="py-3 font-medium text-gray-500 text-start text-theme-xs dark:text-gray-400">
+              <TableCell isHeader className="py-3 font-semibold text-gray-500 text-start text-theme-xs dark:text-gray-400">
                 Status
               </TableCell>
             </TableRow>
           </TableHeader>
 
-          {/* Table Body */}
-
           <TableBody className="divide-y divide-gray-100 dark:divide-gray-800">
-            {tableData.map((product) => (<TableRow key={product.id} className="">
-                <TableCell className="py-3">
-                  <div className="flex items-center gap-3">
-                    <div className="h-[50px] w-[50px] overflow-hidden rounded-md">
-                      <Image width={50} height={50} src={product.image} className="h-[50px] w-[50px]" alt={product.name}/>
+            {loading && orders.length === 0 ? (
+              [1, 2, 3].map((i) => (
+                <TableRow key={i}>
+                  <TableCell className="py-3.5" colSpan={5}>
+                    <div className="h-5 bg-gray-200 dark:bg-gray-800 rounded animate-pulse w-full" />
+                  </TableCell>
+                </TableRow>
+              ))
+            ) : filteredOrders.length === 0 ? (
+              <TableRow>
+                <TableCell className="py-8 text-center text-gray-400 text-xs" colSpan={5}>
+                  <FiShoppingBag className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
+                  No matching orders found.
+                </TableCell>
+              </TableRow>
+            ) : (
+              filteredOrders.map((order) => (
+                <TableRow key={order.id} className="hover:bg-gray-50/70 dark:hover:bg-white/[0.02] transition-colors">
+                  <TableCell className="py-3.5">
+                    <div className="flex items-center gap-3">
+                      <div className="h-10 w-10 relative overflow-hidden rounded-lg border border-gray-100 dark:border-gray-800 bg-gray-50 dark:bg-gray-800 shrink-0">
+                        <Image
+                          width={40}
+                          height={40}
+                          src={order.image || "/images/product/product-01.jpg"}
+                          className="h-full w-full object-cover"
+                          alt={order.name}
+                        />
+                      </div>
+                      <div>
+                        <div className="flex items-center gap-1.5">
+                          <span className="font-bold text-brand-600 dark:text-brand-400 text-xs">
+                            {order.orderNumber}
+                          </span>
+                        </div>
+                        <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90 truncate max-w-[180px] sm:max-w-xs">
+                          {order.name}
+                        </p>
+                        <span className="text-gray-400 text-[11px]">
+                          {order.variants}
+                        </span>
+                      </div>
                     </div>
-                    <div>
-                      <p className="font-medium text-gray-800 text-theme-sm dark:text-white/90">
-                        {product.name}
-                      </p>
-                      <span className="text-gray-500 text-theme-xs dark:text-gray-400">
-                        {product.variants}
-                      </span>
-                    </div>
-                  </div>
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {product.price}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  {product.category}
-                </TableCell>
-                <TableCell className="py-3 text-gray-500 text-theme-sm dark:text-gray-400">
-                  <Badge size="sm" color={product.status === "Delivered"
-                ? "success"
-                : product.status === "Pending"
-                    ? "warning"
-                    : "error"}>
-                    {product.status}
-                  </Badge>
-                </TableCell>
-              </TableRow>))}
+                  </TableCell>
+                  <TableCell className="py-3.5 text-gray-700 font-medium text-theme-sm dark:text-gray-300">
+                    {order.customerName}
+                  </TableCell>
+                  <TableCell className="py-3.5 text-gray-500 text-theme-xs dark:text-gray-400">
+                    {order.date}
+                  </TableCell>
+                  <TableCell className="py-3.5 font-bold text-gray-900 text-theme-sm dark:text-white">
+                    {order.price}
+                  </TableCell>
+                  <TableCell className="py-3.5">
+                    <Badge
+                      size="sm"
+                      color={
+                        order.status === "Delivered"
+                          ? "success"
+                          : order.status === "Processing"
+                          ? "info"
+                          : order.status === "Pending"
+                          ? "warning"
+                          : "error"
+                      }
+                    >
+                      {order.status}
+                    </Badge>
+                  </TableCell>
+                </TableRow>
+              ))
+            )}
           </TableBody>
         </Table>
       </div>
-    </div>);
+    </div>
+  );
 }

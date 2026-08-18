@@ -57,14 +57,17 @@ export default function TextControls({ selectedLayer, onAddText, onUpdateLayer }
   }
 
   return (
-    <div className="p-4 flex flex-col gap-4 max-h-[600px] overflow-y-auto no-scrollbar">
+    <div className="p-4 flex flex-col gap-4 h-full overflow-y-auto">
       <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-3">
         <h3 className="font-bold text-gray-800 dark:text-gray-100 text-sm flex items-center gap-2">
           <FiEdit3 className="w-4 h-4 text-brand-500" /> Text Inspector
         </h3>
-        <span className="text-[10px] bg-brand-100 dark:bg-brand-900 text-brand-700 dark:text-brand-300 font-extrabold px-2 py-0.5 rounded-full uppercase">
-          Text Active
-        </span>
+        <button
+          onClick={() => onAddText("NEW TEXT")}
+          className="text-[11px] font-bold bg-brand-50 hover:bg-brand-100 text-brand-600 dark:bg-brand-950 dark:text-brand-400 px-2.5 py-1 rounded-lg border border-brand-200 dark:border-brand-900 transition-colors"
+        >
+          + Add New
+        </button>
       </div>
 
       {/* Layer Content */}
@@ -78,6 +81,36 @@ export default function TextControls({ selectedLayer, onAddText, onUpdateLayer }
           onChange={(e) => onUpdateLayer(selectedLayer.id, { text: e.target.value })}
           className="w-full px-3 py-2 text-xs font-medium bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded-xl focus:border-brand-500 focus:outline-none dark:text-white"
         />
+      </div>
+
+      {/* Curved Text Arc Effect */}
+      <div className="p-3 bg-gray-50 dark:bg-gray-800/60 rounded-xl border border-gray-200/70 dark:border-gray-700/70 flex flex-col gap-2">
+        <div className="flex items-center justify-between">
+          <label className="flex items-center gap-2 cursor-pointer text-xs font-semibold text-gray-700 dark:text-gray-300">
+            <input
+              type="checkbox"
+              checked={Boolean(selectedLayer.curved)}
+              onChange={(e) => onUpdateLayer(selectedLayer.id, { curved: e.target.checked })}
+              className="rounded accent-brand-500"
+            />
+            Curved Text (Arc Effect)
+          </label>
+          {selectedLayer.curved && (
+            <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400">
+              {selectedLayer.arcAngle || 25}°
+            </span>
+          )}
+        </div>
+        {selectedLayer.curved && (
+          <input
+            type="range"
+            min="10"
+            max="60"
+            value={selectedLayer.arcAngle || 25}
+            onChange={(e) => onUpdateLayer(selectedLayer.id, { arcAngle: parseInt(e.target.value) })}
+            className="w-full accent-brand-500"
+          />
+        )}
       </div>
 
       {/* Font Family Picker */}

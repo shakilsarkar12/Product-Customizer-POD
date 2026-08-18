@@ -13,6 +13,7 @@ export async function refreshShopifyAccessToken({
   shopDomain,
   clientId,
   clientSecret,
+  accessToken,
   siteName,
   dashboardTitle,
   supportEmail,
@@ -27,9 +28,9 @@ export async function refreshShopifyAccessToken({
   const id = clientId || existingDbData.clientId || process.env.SHOPIFY_CLIENT_ID;
   const secret = clientSecret || existingDbData.clientSecret || process.env.SHOPIFY_CLIENT_SECRET;
 
-  let freshAccessToken = null;
+  let freshAccessToken = accessToken || null;
 
-  if (shop && id && secret) {
+  if (!freshAccessToken && shop && id && secret) {
     try {
       const shopifyUrl = `https://${shop}/admin/oauth/access_token`;
       const response = await fetch(shopifyUrl, {
@@ -54,7 +55,7 @@ export async function refreshShopifyAccessToken({
 
   // Fallback fresh token generation if OAuth server response is mocked/custom app
   if (!freshAccessToken) {
-    freshAccessToken = existingDbData.accessToken || `shpat_${Math.random().toString(36).substring(2, 12)}_${Date.now()}`;
+    freshAccessToken = existingDbData.accessToken || process.env.SHOPIFY_ADMIN_ACCESS_TOKEN || "";
   }
 
   const now = Date.now();

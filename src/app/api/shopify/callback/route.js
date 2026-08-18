@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { saveCredentialsToDb } from "@/lib/mongodb";
+import { syncShopifyProducts } from "@/lib/shopifyProductSync";
 
 export async function GET(req) {
   const { searchParams } = new URL(req.url);
@@ -11,8 +12,9 @@ export async function GET(req) {
   }
 
   const cleanShop = shop.replace(/^https?:\/\//, "").replace(/\/$/, "");
-  const clientId = process.env.SHOPIFY_CLIENT_ID;
-  const clientSecret = process.env.SHOPIFY_CLIENT_SECRET;
+  const dbCreds = (await getCredentialsFromDb()) || {};
+  const clientId = dbCreds.clientId || process.env.SHOPIFY_CLIENT_ID;
+  const clientSecret = dbCreds.clientSecret || process.env.SHOPIFY_CLIENT_SECRET;
 
   try {
     // Exchange temporary authorization code for permanent/long-lived access token
@@ -69,6 +71,14 @@ export async function GET(req) {
       });
 
       console.log(`[Shopify 1-Click Install] Successfully installed & saved live store details (${shopDetails.name || cleanShop}) to MongoDB!`);
+
+      // Auto-sync products immediately upon install
+      try {
+        await syncShopifyProducts();
+        console.log(`[Shopify 1-Click Install] Auto-synced products from ${cleanShop} successfully!`);
+      } catch (syncErr) {
+        console.warn("[Shopify Auto-Sync on Install Warning]:", syncErr.message);
+      }
 
       // Redirect merchant straight to App Base Dashboard URL using native Shopify OAuth parameters
       const baseUrl = process.env.NEXT_PUBLIC_APP_URL || "https://podcraft.shakildev.online";

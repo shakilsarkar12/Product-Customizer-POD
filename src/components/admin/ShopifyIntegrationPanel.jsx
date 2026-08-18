@@ -180,6 +180,48 @@ export default function ShopifyIntegrationPanel() {
         </div>
       </div>
 
+      {/* Official Shopify Partner Dashboard Configuration Checklist */}
+      <div className="p-5 bg-gray-50 dark:bg-gray-900/70 rounded-2xl border border-gray-200 dark:border-gray-700 space-y-4">
+        <div className="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 pb-2">
+          <h3 className="text-sm font-bold text-gray-800 dark:text-white flex items-center gap-2">
+            <FiServer className="w-4 h-4 text-brand-500" /> Shopify Partner Dashboard Setup URLs (Public App Standards)
+          </h3>
+          <span className="text-[10px] font-bold text-brand-600 bg-brand-50 dark:bg-brand-950 px-2 py-0.5 rounded-full">
+            Shopify 2024 Standards
+          </span>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-3 text-xs">
+          <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <span className="text-gray-400 font-bold block mb-1">App URL</span>
+            <code className="text-brand-600 dark:text-brand-400 font-mono text-[11px] block select-all">
+              https://podcraft.shakildev.online
+            </code>
+          </div>
+
+          <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <span className="text-gray-400 font-bold block mb-1">Allowed Redirection URL(s)</span>
+            <code className="text-brand-600 dark:text-brand-400 font-mono text-[11px] block select-all">
+              https://podcraft.shakildev.online/api/shopify/callback
+            </code>
+          </div>
+
+          <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <span className="text-gray-400 font-bold block mb-1">App Proxy (Prefix: apps, Subpath: customizer)</span>
+            <code className="text-brand-600 dark:text-brand-400 font-mono text-[11px] block select-all">
+              https://podcraft.shakildev.online/api/shopify/proxy
+            </code>
+          </div>
+
+          <div className="p-3 bg-white dark:bg-gray-800 rounded-xl border border-gray-200 dark:border-gray-700">
+            <span className="text-gray-400 font-bold block mb-1">Mandatory GDPR & Lifecycle Webhooks</span>
+            <code className="text-emerald-600 dark:text-emerald-400 font-mono text-[11px] block select-all">
+              https://podcraft.shakildev.online/api/shopify/webhooks/*
+            </code>
+          </div>
+        </div>
+      </div>
+
       {/* Live Cart Line-Item Properties Payload Output */}
       <div className="p-4 bg-gray-900 text-gray-100 rounded-2xl font-mono text-xs overflow-x-auto flex flex-col gap-2 shadow-inner border border-gray-800">
         <div className="flex items-center justify-between text-gray-400 border-b border-gray-800 pb-2">
