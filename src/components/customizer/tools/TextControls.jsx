@@ -90,25 +90,30 @@ export default function TextControls({ selectedLayer, onAddText, onUpdateLayer }
             <input
               type="checkbox"
               checked={Boolean(selectedLayer.curved)}
-              onChange={(e) => onUpdateLayer(selectedLayer.id, { curved: e.target.checked })}
+              onChange={(e) =>
+                onUpdateLayer(selectedLayer.id, {
+                  curved: e.target.checked,
+                  arcAngle: selectedLayer.arcAngle !== undefined ? selectedLayer.arcAngle : 28,
+                })
+              }
               className="rounded accent-brand-500"
             />
             Curved Text (Arc Effect)
           </label>
           {selectedLayer.curved && (
             <span className="text-[11px] font-bold text-brand-600 dark:text-brand-400">
-              {selectedLayer.arcAngle || 25}°
+              {selectedLayer.arcAngle !== undefined ? selectedLayer.arcAngle : 28}°
             </span>
           )}
         </div>
         {selectedLayer.curved && (
           <input
             type="range"
-            min="10"
-            max="60"
-            value={selectedLayer.arcAngle || 25}
+            min="5"
+            max="90"
+            value={selectedLayer.arcAngle !== undefined ? selectedLayer.arcAngle : 28}
             onChange={(e) => onUpdateLayer(selectedLayer.id, { arcAngle: parseInt(e.target.value) })}
-            className="w-full accent-brand-500"
+            className="w-full accent-brand-500 cursor-pointer"
           />
         )}
       </div>

@@ -358,27 +358,85 @@ export default function CanvasEngine({
 
               {/* Layer Type: Text */}
               {layer.type === "text" && (
-                <div
-                  style={{
-                    fontFamily: layer.fontFamily || "Inter, sans-serif",
-                    fontSize: `${layer.fontSize || 24}px`,
-                    color: layer.color || "#111827",
-                    fontWeight: layer.bold ? "bold" : "normal",
-                    fontStyle: layer.italic ? "italic" : "normal",
-                    textTransform: layer.uppercase ? "uppercase" : "none",
-                    textAlign: layer.align || "center",
-                    backgroundColor: layer.bgColor || "transparent",
-                    WebkitTextStroke: layer.strokeWidth ? `${layer.strokeWidth}px ${layer.strokeColor || "#000"}` : "none",
-                    textShadow: layer.shadowColor ? `0px 4px ${layer.shadowBlur || 6}px ${layer.shadowColor}` : "none",
-                    letterSpacing: `${layer.letterSpacing || 0}px`,
-                    whiteSpace: "nowrap",
-                    padding: layer.bgColor ? "4px 10px" : "2px",
-                    borderRadius: layer.bgColor ? "8px" : "0px",
-                  }}
-                  className="select-none tracking-tight leading-none"
-                >
-                  {layer.text || "Custom Text"}
-                </div>
+                layer.curved ? (
+                  (() => {
+                    const text = layer.text || "Custom Text";
+                    const letters = Array.from(text);
+                    const count = letters.length;
+                    const fontSize = Number(layer.fontSize) || 24;
+                    const angle = Number(layer.arcAngle) !== undefined ? Number(layer.arcAngle) : 28;
+                    const charWidth = fontSize * 0.58 + (Number(layer.letterSpacing) || 0);
+                    const totalLen = Math.max(10, count * charWidth);
+                    const angleRad = Math.max(0.15, (Math.abs(angle) * Math.PI) / 180);
+                    const radius = Math.max(25, totalLen / angleRad);
+                    const originY = angle >= 0 ? `${radius}px` : `${-radius}px`;
+
+                    return (
+                      <div
+                        style={{
+                          position: "relative",
+                          display: "inline-flex",
+                          justifyContent: "center",
+                          alignItems: "center",
+                          minHeight: `${fontSize * 2}px`,
+                          minWidth: `${totalLen}px`,
+                          padding: "8px 12px",
+                          userSelect: "none",
+                        }}
+                        className="select-none leading-none pointer-events-none"
+                      >
+                        {letters.map((char, index) => {
+                          const charAngle = count > 1 ? ((index / (count - 1)) - 0.5) * angle : 0;
+
+                          return (
+                            <span
+                              key={index}
+                              style={{
+                                display: "inline-block",
+                                position: "absolute",
+                                fontFamily: layer.fontFamily || "Inter, sans-serif",
+                                fontSize: `${fontSize}px`,
+                                color: layer.color || "#111827",
+                                fontWeight: layer.bold ? "bold" : "normal",
+                                fontStyle: layer.italic ? "italic" : "normal",
+                                textTransform: layer.uppercase ? "uppercase" : "none",
+                                WebkitTextStroke: layer.strokeWidth ? `${layer.strokeWidth}px ${layer.strokeColor || "#000"}` : "none",
+                                textShadow: layer.shadowColor ? `0px 4px ${layer.shadowBlur || 6}px ${layer.shadowColor}` : "none",
+                                transformOrigin: `50% ${originY}`,
+                                transform: `rotate(${charAngle}deg)`,
+                                whiteSpace: "pre",
+                              }}
+                            >
+                              {char}
+                            </span>
+                          );
+                        })}
+                      </div>
+                    );
+                  })()
+                ) : (
+                  <div
+                    style={{
+                      fontFamily: layer.fontFamily || "Inter, sans-serif",
+                      fontSize: `${layer.fontSize || 24}px`,
+                      color: layer.color || "#111827",
+                      fontWeight: layer.bold ? "bold" : "normal",
+                      fontStyle: layer.italic ? "italic" : "normal",
+                      textTransform: layer.uppercase ? "uppercase" : "none",
+                      textAlign: layer.align || "center",
+                      backgroundColor: layer.bgColor || "transparent",
+                      WebkitTextStroke: layer.strokeWidth ? `${layer.strokeWidth}px ${layer.strokeColor || "#000"}` : "none",
+                      textShadow: layer.shadowColor ? `0px 4px ${layer.shadowBlur || 6}px ${layer.shadowColor}` : "none",
+                      letterSpacing: `${layer.letterSpacing || 0}px`,
+                      whiteSpace: "nowrap",
+                      padding: layer.bgColor ? "4px 10px" : "2px",
+                      borderRadius: layer.bgColor ? "8px" : "0px",
+                    }}
+                    className="select-none tracking-tight leading-none"
+                  >
+                    {layer.text || "Custom Text"}
+                  </div>
+                )
               )}
 
               {/* Layer Type: Clipart / SVG */}
