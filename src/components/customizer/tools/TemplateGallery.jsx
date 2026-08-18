@@ -42,8 +42,8 @@ export default function TemplateGallery({
     };
   }, []);
 
-  // Merge API templates with fallback default templates
-  const allTemplates = apiTemplates.length > 0 ? apiTemplates : TEMPLATES_DATA;
+  // 100% Dynamic templates from API
+  const allTemplates = apiTemplates;
 
   // Filter templates: 1. By Product Assignment, 2. By Category
   const filteredTemplates = allTemplates.filter((t) => {

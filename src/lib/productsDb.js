@@ -1,7 +1,6 @@
 import clientPromise from "./mongodb";
 import fs from "fs";
 import path from "path";
-import { PRODUCTS_DATA } from "@/data/customizerData";
 
 const FALLBACK_PRODUCTS_PATH = path.join(process.cwd(), ".data", "products.json");
 
@@ -60,21 +59,8 @@ export async function getProducts() {
     return fallback;
   }
 
-  // Initial seed with PRODUCTS_DATA only on first startup
-  const initialProducts = JSON.parse(JSON.stringify(PRODUCTS_DATA));
-  writeFallbackProducts(initialProducts);
-
-  try {
-    const mongoClient = await clientPromise;
-    if (mongoClient) {
-      const db = mongoClient.db("shopify_customizer");
-      await db.collection("products").insertMany(initialProducts);
-    }
-  } catch (e) {
-    // Ignore seed error
-  }
-
-  return initialProducts;
+  // Purely dynamic - return empty array until products are synced or created
+  return [];
 }
 
 /**

@@ -1,7 +1,6 @@
 import clientPromise from "./mongodb";
 import fs from "fs";
 import path from "path";
-import { TEMPLATES_DATA } from "@/data/customizerData";
 
 const FALLBACK_TEMPLATES_PATH = path.join(process.cwd(), ".data", "templates.json");
 
@@ -61,26 +60,8 @@ export async function getTemplates() {
     return fallback;
   }
 
-  // Initial seed only once if file never existed
-  const initialSeed = TEMPLATES_DATA.map((t, idx) => ({
-    ...t,
-    productTypes: t.productTypes || (t.productType ? [t.productType] : ["all"]),
-    createdAt: new Date(Date.now() - (idx * 3600000)).toISOString(),
-  }));
-
-  writeFallbackTemplates(initialSeed);
-
-  try {
-    const mongoClient = await clientPromise;
-    if (mongoClient) {
-      const db = mongoClient.db("shopify_customizer");
-      await db.collection("templates").insertMany(initialSeed);
-    }
-  } catch (e) {
-    // Ignore initial seed error
-  }
-
-  return initialSeed;
+  // Purely dynamic - return empty array until templates are created
+  return [];
 }
 
 /**

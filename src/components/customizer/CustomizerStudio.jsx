@@ -85,7 +85,7 @@ export default function CustomizerStudio() {
   }, [paramProductId, paramProductTitle, paramProductImage, paramPrice, paramColor]);
 
   // Dynamic available products from database
-  const [availableProducts, setAvailableProducts] = useState(PRODUCTS_DATA);
+  const [availableProducts, setAvailableProducts] = useState([]);
 
   useEffect(() => {
     fetch("/api/products", { cache: "no-store" })
@@ -93,20 +93,39 @@ export default function CustomizerStudio() {
       .then((data) => {
         if (data && data.products && data.products.length > 0) {
           setAvailableProducts(data.products);
+          if (!selectedProductId) {
+            setSelectedProductId(data.products[0].id);
+          }
         }
       })
       .catch((err) => console.warn("[Fetch Products Studio Error]:", err));
-  }, []);
+  }, [selectedProductId]);
 
   // Product selection state
-  const [selectedProductId, setSelectedProductId] = useState(
-    paramProductId && PRODUCTS_DATA.some((p) => p.id === paramProductId) ? paramProductId : "t-shirt"
-  );
+  const [selectedProductId, setSelectedProductId] = useState(paramProductId || "");
+
+  const DEFAULT_PRODUCT_FALLBACK = useMemo(() => ({
+    id: "default-product",
+    name: "Custom Product",
+    category: "Apparel",
+    basePrice: 25.0,
+    colors: [
+      { id: "white", name: "White", hex: "#FFFFFF", image: "/images/product/product-01.jpg", backImage: "/images/product/product-02.jpg" },
+    ],
+    materials: [
+      { id: "standard", name: "Standard Quality", priceAddon: 0 },
+    ],
+    sizes: ["S", "M", "L", "XL"],
+    views: [
+      { id: "front", label: "Front View", image: "/images/product/product-01.jpg", printArea: { x: 25, y: 22, width: 50, height: 60 } },
+      { id: "back", label: "Back View", image: "/images/product/product-02.jpg", printArea: { x: 25, y: 20, width: 50, height: 65 } },
+    ],
+  }), []);
 
   const currentProduct = useMemo(() => {
     if (dynamicShopifyProduct) return dynamicShopifyProduct;
-    return availableProducts.find((p) => p.id === selectedProductId) || availableProducts[0] || PRODUCTS_DATA[0];
-  }, [dynamicShopifyProduct, selectedProductId, availableProducts]);
+    return availableProducts.find((p) => p.id === selectedProductId) || availableProducts[0] || DEFAULT_PRODUCT_FALLBACK;
+  }, [dynamicShopifyProduct, selectedProductId, availableProducts, DEFAULT_PRODUCT_FALLBACK]);
 
   const [selectedColor, setSelectedColor] = useState(currentProduct.colors[0]);
   useEffect(() => {
