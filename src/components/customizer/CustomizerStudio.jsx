@@ -84,6 +84,9 @@ export default function CustomizerStudio() {
     return null;
   }, [paramProductId, paramProductTitle, paramProductImage, paramPrice, paramColor]);
 
+  // Product selection state (MUST be declared before effects)
+  const [selectedProductId, setSelectedProductId] = useState(paramProductId || "");
+
   // Dynamic available products from database
   const [availableProducts, setAvailableProducts] = useState([]);
 
@@ -93,16 +96,16 @@ export default function CustomizerStudio() {
       .then((data) => {
         if (data && data.products && data.products.length > 0) {
           setAvailableProducts(data.products);
-          if (!selectedProductId) {
-            setSelectedProductId(data.products[0].id);
-          }
+          setSelectedProductId((currentId) => {
+            if (currentId && data.products.some((p) => p.id === currentId || p.shopifyProductId === currentId)) {
+              return currentId;
+            }
+            return paramProductId || data.products[0].id;
+          });
         }
       })
       .catch((err) => console.warn("[Fetch Products Studio Error]:", err));
-  }, [selectedProductId]);
-
-  // Product selection state
-  const [selectedProductId, setSelectedProductId] = useState(paramProductId || "");
+  }, [paramProductId]);
 
   const DEFAULT_PRODUCT_FALLBACK = useMemo(() => ({
     id: "default-product",
@@ -124,18 +127,25 @@ export default function CustomizerStudio() {
 
   const currentProduct = useMemo(() => {
     if (dynamicShopifyProduct) return dynamicShopifyProduct;
-    return availableProducts.find((p) => p.id === selectedProductId) || availableProducts[0] || DEFAULT_PRODUCT_FALLBACK;
+    return (
+      availableProducts.find((p) => p.id === selectedProductId || p.shopifyProductId === selectedProductId) ||
+      availableProducts[0] ||
+      DEFAULT_PRODUCT_FALLBACK
+    );
   }, [dynamicShopifyProduct, selectedProductId, availableProducts, DEFAULT_PRODUCT_FALLBACK]);
 
-  const [selectedColor, setSelectedColor] = useState(currentProduct.colors[0]);
+  const [selectedColor, setSelectedColor] = useState(
+    currentProduct?.colors?.[0] || { id: "white", name: "White", hex: "#FFFFFF", image: "/images/product/product-01.jpg" }
+  );
+
   useEffect(() => {
     if (currentProduct?.colors?.[0]) {
       setSelectedColor(currentProduct.colors[0]);
     }
   }, [currentProduct]);
 
-  const [selectedMaterialId, setSelectedMaterialId] = useState(currentProduct.materials[0]?.id);
-  const [activeViewId, setActiveViewId] = useState(currentProduct.views[0]?.id || "front");
+  const [selectedMaterialId, setSelectedMaterialId] = useState(currentProduct?.materials?.[0]?.id || "standard");
+  const [activeViewId, setActiveViewId] = useState(currentProduct?.views?.[0]?.id || "front");
   const [quantity, setQuantity] = useState(1);
 
   // Layers state per view { front: [], back: [], ... }
@@ -324,7 +334,7 @@ export default function CustomizerStudio() {
     if (!tpl || !tpl.layers) return;
     const productTypes = tpl.productTypes || (tpl.productType ? [tpl.productType] : ["all"]);
     if (!productTypes.includes("all") && !productTypes.includes(selectedProductId) && productTypes[0]) {
-      if (PRODUCTS_DATA.some((p) => p.id === productTypes[0])) {
+      if (availableProducts.some((p) => p.id === productTypes[0] || p.shopifyProductId === productTypes[0])) {
         setSelectedProductId(productTypes[0]);
       }
     }
