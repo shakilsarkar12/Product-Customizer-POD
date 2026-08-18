@@ -34,19 +34,10 @@ const AVAILABLE_CATEGORIES = [
   "Custom",
 ];
 
-const DEFAULT_PRODUCTS = [
-  { id: "t-shirt", name: "T-Shirt", icon: "👕" },
-  { id: "hoodie", name: "Hoodie", icon: "🧥" },
-  { id: "mug", name: "Coffee Mug", icon: "☕" },
-  { id: "phone-case", name: "Phone Case", icon: "📱" },
-  { id: "tote-bag", name: "Tote Bag", icon: "👜" },
-  { id: "cap", name: "Snapback Cap", icon: "🧢" },
-];
-
 export default function TemplateManager() {
   const [activeAdminTab, setActiveAdminTab] = useState("templates"); // "templates" | "products-config"
   const [templates, setTemplates] = useState([]);
-  const [dynamicProducts, setDynamicProducts] = useState(DEFAULT_PRODUCTS);
+  const [dynamicProducts, setDynamicProducts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [searchTerm, setSearchTerm] = useState("");
   const [categoryFilter, setCategoryFilter] = useState("All");
@@ -86,11 +77,12 @@ export default function TemplateManager() {
       const res = await fetch("/api/products", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
-        if (data.products && data.products.length > 0) {
+        if (data.products && Array.isArray(data.products)) {
           const mapped = data.products.map((p) => ({
             id: p.id,
+            shopifyProductId: p.shopifyProductId,
             name: p.name,
-            icon: p.category === "Apparel" ? "👕" : p.category === "Drinkware" ? "☕" : "📦",
+            icon: p.category === "Apparel" ? "👕" : p.category === "Drinkware" ? "☕" : "🛍️",
           }));
           setDynamicProducts(mapped);
         }
@@ -720,27 +712,43 @@ export default function TemplateManager() {
                   </button>
 
                   {/* Individual Products */}
-                  {dynamicProducts.map((prod) => {
-                    const isSelected =
-                      !formData.productTypes.includes("all") &&
-                      formData.productTypes.includes(prod.id);
-
-                    return (
+                  {dynamicProducts.length === 0 ? (
+                    <div className="w-full mt-2 p-3 bg-amber-50 dark:bg-amber-950/40 rounded-xl border border-amber-200 dark:border-amber-900/60 text-xs text-amber-800 dark:text-amber-300 flex items-center justify-between">
+                      <span>No Shopify products synced yet. Go to <strong>Products Configurator</strong> tab to sync.</span>
                       <button
-                        key={prod.id}
                         type="button"
-                        onClick={() => handleToggleProduct(prod.id)}
-                        className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
-                          isSelected
-                            ? "bg-blue-600 text-white border-blue-600 shadow-xs"
-                            : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:border-blue-400"
-                        }`}
+                        onClick={() => {
+                          setIsModalOpen(false);
+                          setActiveAdminTab("products-config");
+                        }}
+                        className="px-2.5 py-1 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-[11px]"
                       >
-                        {isSelected && <FiCheck className="w-3.5 h-3.5" />}
-                        <span>{prod.icon || "👕"}</span> {prod.name}
+                        Sync Products &rarr;
                       </button>
-                    );
-                  })}
+                    </div>
+                  ) : (
+                    dynamicProducts.map((prod) => {
+                      const isSelected =
+                        !formData.productTypes.includes("all") &&
+                        formData.productTypes.includes(prod.id);
+
+                      return (
+                        <button
+                          key={prod.id}
+                          type="button"
+                          onClick={() => handleToggleProduct(prod.id)}
+                          className={`px-3 py-1.5 text-xs font-bold rounded-xl border transition-all flex items-center gap-1.5 ${
+                            isSelected
+                              ? "bg-blue-600 text-white border-blue-600 shadow-xs"
+                              : "bg-white dark:bg-gray-800 text-gray-700 dark:text-gray-300 border-gray-300 dark:border-gray-700 hover:border-blue-400"
+                          }`}
+                        >
+                          {isSelected && <FiCheck className="w-3.5 h-3.5" />}
+                          <span>{prod.icon || "🛍️"}</span> {prod.name}
+                        </button>
+                      );
+                    })
+                  )}
                 </div>
               </div>
 
