@@ -11,6 +11,8 @@ import DemographicCard from "@/components/ecommerce/DemographicCard";
 import { FiRefreshCw, FiCheckCircle, FiBox, FiSettings, FiShoppingBag } from "react-icons/fi";
 import Link from "next/link";
 
+import ShopifyProductsGrid from "@/components/ecommerce/ShopifyProductsGrid";
+
 function DashboardContent() {
   const { data, syncing, refreshData, lastUpdated } = useDashboard();
 
@@ -72,7 +74,10 @@ function DashboardContent() {
         </div>
       </div>
 
-      {/* Main Grid */}
+      {/* Connected Shopify Products Section */}
+      <ShopifyProductsGrid />
+
+      {/* Main Analytics Grid */}
       <div className="grid grid-cols-12 gap-4 md:gap-6">
         {/* Top Left: 4 KPI Metrics + Monthly Bar Chart */}
         <div className="col-span-12 space-y-6 xl:col-span-7">
