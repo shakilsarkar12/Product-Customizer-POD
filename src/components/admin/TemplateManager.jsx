@@ -17,6 +17,7 @@ import {
   FiCheckCircle,
   FiSliders,
   FiImage,
+  FiUploadCloud,
 } from "react-icons/fi";
 import Link from "next/link";
 import { CLIPARTS_DATA, FONTS_LIST } from "@/data/customizerData";
@@ -49,9 +50,37 @@ export default function TemplateManager() {
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null); // null = Create, string = Edit
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
+  const [uploadingImage, setUploadingImage] = useState(false);
+  const templateFileRef = React.useRef(null);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
+
+  const handleTemplateFileUpload = async (file) => {
+    if (!file) return;
+    setUploadingImage(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/shopify/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        setFormData((prev) => ({ ...prev, thumbnail: data.url }));
+        showToast("Uploaded & stored in Shopify Files!");
+      } else {
+        showToast(data.error || "Failed to upload image to Shopify.");
+      }
+    } catch (err) {
+      showToast("Upload error: " + err.message);
+    } finally {
+      setUploadingImage(false);
+    }
+  };
 
   // Form State
   const [formData, setFormData] = useState({
@@ -692,25 +721,59 @@ export default function TemplateManager() {
 
               {/* Template Mockup Thumbnail Image */}
               <div>
-                <div className="flex items-center justify-between mb-1">
-                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
-                    Template Mockup Image URL
-                  </label>
-                  <button
-                    type="button"
-                    onClick={() => setIsMediaPickerOpen(true)}
-                    className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
-                  >
-                    <FiImage className="w-3 h-3" /> Pick from Shopify Files
-                  </button>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1.5">
+                  Template Mockup Image
+                </label>
+                <div className="flex items-center gap-3 p-2.5 bg-gray-50 dark:bg-gray-900 rounded-2xl border border-gray-200 dark:border-gray-700/60">
+                  <div className="w-14 h-14 rounded-xl bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 flex items-center justify-center p-1 overflow-hidden shrink-0">
+                    {formData.thumbnail ? (
+                      <img src={formData.thumbnail} alt="Template Mockup" className="max-h-full max-w-full object-contain" />
+                    ) : (
+                      <FiImage className="w-6 h-6 text-gray-400" />
+                    )}
+                  </div>
+
+                  <div className="flex-1 min-w-0">
+                    <span className="text-xs font-bold text-gray-800 dark:text-white block truncate">
+                      {formData.thumbnail ? formData.thumbnail.split("/").pop() : "No image selected"}
+                    </span>
+                    <span className="text-[10px] text-gray-400 block mt-0.5">
+                      Upload from PC or pick from Shopify Content Files
+                    </span>
+
+                    <div className="flex items-center gap-2 mt-2">
+                      <input
+                        type="file"
+                        ref={templateFileRef}
+                        accept="image/*"
+                        className="hidden"
+                        onChange={(e) => {
+                          if (e.target.files?.[0]) {
+                            handleTemplateFileUpload(e.target.files[0]);
+                          }
+                        }}
+                      />
+
+                      <button
+                        type="button"
+                        disabled={uploadingImage}
+                        onClick={() => templateFileRef.current?.click()}
+                        className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-[11px] font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+                      >
+                        <FiUploadCloud className={`w-3.5 h-3.5 ${uploadingImage ? "animate-spin" : ""}`} />
+                        {uploadingImage ? "Uploading to Shopify..." : "Upload Image"}
+                      </button>
+
+                      <button
+                        type="button"
+                        onClick={() => setIsMediaPickerOpen(true)}
+                        className="px-3 py-1.5 bg-white dark:bg-gray-800 hover:bg-gray-100 dark:hover:bg-gray-700 text-gray-700 dark:text-gray-200 rounded-xl text-[11px] font-bold border border-gray-200 dark:border-gray-700 flex items-center gap-1.5 transition-colors cursor-pointer"
+                      >
+                        <FiImage className="w-3.5 h-3.5 text-brand-500" /> Pick from Shopify Files
+                      </button>
+                    </div>
+                  </div>
                 </div>
-                <input
-                  type="text"
-                  placeholder="e.g. /images/product/product-01.jpg or Shopify CDN URL"
-                  value={formData.thumbnail}
-                  onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white font-mono"
-                />
               </div>
 
               {/* Product Assignment Multi-Selector */}

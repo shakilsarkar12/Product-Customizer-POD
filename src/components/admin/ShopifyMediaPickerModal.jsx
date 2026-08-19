@@ -19,8 +19,10 @@ export default function ShopifyMediaPickerModal({
 }) {
   const [files, setFiles] = useState([]);
   const [loading, setLoading] = useState(true);
+  const [uploading, setUploading] = useState(false);
   const [searchTerm, setSearchTerm] = useState("");
   const [selectedUrl, setSelectedUrl] = useState(null);
+  const fileInputRef = React.useRef(null);
 
   const fetchFiles = useCallback(async () => {
     setLoading(true);
@@ -36,6 +38,30 @@ export default function ShopifyMediaPickerModal({
       setLoading(false);
     }
   }, []);
+
+  const handleModalUpload = async (file) => {
+    if (!file) return;
+    setUploading(true);
+    try {
+      const formData = new FormData();
+      formData.append("file", file);
+
+      const res = await fetch("/api/shopify/files/upload", {
+        method: "POST",
+        body: formData,
+      });
+
+      const data = await res.json();
+      if (res.ok && data.success && data.url) {
+        await fetchFiles();
+        setSelectedUrl(data.url);
+      }
+    } catch (err) {
+      console.warn("[Modal Upload Error]:", err);
+    } finally {
+      setUploading(false);
+    }
+  };
 
   useEffect(() => {
     if (isOpen) {
@@ -79,10 +105,31 @@ export default function ShopifyMediaPickerModal({
           </div>
 
           <div className="flex items-center gap-2">
+            <input
+              type="file"
+              ref={fileInputRef}
+              accept="image/*"
+              className="hidden"
+              onChange={(e) => {
+                if (e.target.files?.[0]) {
+                  handleModalUpload(e.target.files[0]);
+                }
+              }}
+            />
+
+            <button
+              onClick={() => fileInputRef.current?.click()}
+              disabled={uploading}
+              className="px-3 py-1.5 bg-brand-500 hover:bg-brand-600 disabled:opacity-50 text-white rounded-xl text-xs font-bold shadow-xs flex items-center gap-1.5 transition-all cursor-pointer"
+            >
+              <FiUploadCloud className={`w-3.5 h-3.5 ${uploading ? "animate-spin" : ""}`} />
+              {uploading ? "Uploading..." : "Upload New File"}
+            </button>
+
             <button
               onClick={fetchFiles}
               disabled={loading}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
               title="Refresh Shopify Files"
             >
               <FiRefreshCw className={`w-4 h-4 ${loading ? "animate-spin" : ""}`} />
@@ -90,7 +137,7 @@ export default function ShopifyMediaPickerModal({
 
             <button
               onClick={onClose}
-              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors"
+              className="p-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-colors cursor-pointer"
             >
               <FiX className="w-4 h-4" />
             </button>
