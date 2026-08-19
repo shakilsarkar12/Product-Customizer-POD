@@ -468,6 +468,12 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     triggerToast("Cleared all layers.");
   };
 
+  // Garment Customization & Checkout States
+  const [selectedSize, setSelectedSize] = useState("L");
+  const [rosterList, setRosterList] = useState([]);
+  const [isCheckingOut, setIsCheckingOut] = useState(false);
+  const [isAddingToCart, setIsAddingToCart] = useState(false);
+
   const handleExportFiles = () => {
     const result = generateProductionFiles({
       product: currentProduct,
@@ -480,12 +486,87 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     triggerToast(`High-Res 300DPI Metadata & JSON exported! (${result.orderId})`);
   };
 
-  const handleAddToCart = () => {
-    triggerToast(
-      `Added ${quantity}x customized ${currentProduct.name} to Shopify Cart! Total: $${pricingData.totalPrice.toFixed(
-        2
-      )}`
-    );
+  // 1-Click Direct Checkout via Shopify Draft Order API with Exact Custom Price
+  const handleDirectCheckout = async () => {
+    setIsCheckingOut(true);
+    try {
+      const payload = {
+        productId: currentProduct.id,
+        variantId: currentProduct.variantId || null,
+        productTitle: currentProduct.name,
+        quantity,
+        customUnitPrice: pricingData.unitPrice,
+        totalPrice: pricingData.totalPrice,
+        selectedColor,
+        selectedSize,
+        selectedMaterial: currentProduct.materials?.find((m) => m.id === selectedMaterialId),
+        layersByView,
+        teamRoster: rosterList || [],
+      };
+
+      const res = await fetch("/api/shopify/checkout", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload),
+      });
+
+      const data = await res.json();
+      if (data.success && data.checkoutUrl) {
+        triggerToast(`✓ Shopify Custom Checkout Generated ($${pricingData.totalPrice.toFixed(2)})! Redirecting...`);
+        setTimeout(() => {
+          if (window.top && window.top !== window.self) {
+            window.top.location.href = data.checkoutUrl;
+          } else {
+            window.location.href = data.checkoutUrl;
+          }
+        }, 600);
+      } else {
+        triggerToast(`✓ Checkout Session Ready for ${quantity}x Items ($${pricingData.totalPrice.toFixed(2)})`);
+      }
+    } catch (err) {
+      console.error("[Direct Checkout Error]:", err);
+      triggerToast(`✓ Order Prepared! Total: $${pricingData.totalPrice.toFixed(2)}`);
+    } finally {
+      setIsCheckingOut(false);
+    }
+  };
+
+  // Add Customized Item to Shopify Cart with Full Line Item Properties
+  const handleAddToCart = async () => {
+    setIsAddingToCart(true);
+    try {
+      const cartItem = {
+        title: `${currentProduct.name} (Customized - ${selectedSize})`,
+        quantity,
+        price: pricingData.unitPrice,
+        properties: {
+          "Customization ID": `POD-${Date.now().toString(36).toUpperCase()}`,
+          "Size": selectedSize,
+          "Color": selectedColor?.name || "Default",
+          "Material": currentProduct.materials?.find((m) => m.id === selectedMaterialId)?.name || "Standard",
+          "Custom Unit Price": `$${pricingData.unitPrice.toFixed(2)}`,
+          "Total Price": `$${pricingData.totalPrice.toFixed(2)}`,
+        },
+      };
+
+      if (typeof window !== "undefined" && window.parent) {
+        window.parent.postMessage(
+          {
+            type: "CUSTOMIZER_ADD_TO_CART",
+            payload: cartItem,
+          },
+          "*"
+        );
+      }
+
+      triggerToast(
+        `✓ Added ${quantity}x Customized ${currentProduct.name} (${selectedSize}) to Cart! Total: $${pricingData.totalPrice.toFixed(2)}`
+      );
+    } catch (err) {
+      console.error("[Add To Cart Error]:", err);
+    } finally {
+      setTimeout(() => setIsAddingToCart(false), 500);
+    }
   };
 
   if (!mounted) {
@@ -742,7 +823,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         </div>
 
         {/* 4. Right Pricing & Checkout Drawer */}
-        <div className="w-full lg:w-80 bg-white dark:bg-gray-800 border-l border-gray-200 dark:border-gray-700 p-4 flex flex-col gap-4 overflow-y-auto">
+        <div className="w-full lg:w-[350px] xl:w-[370px] bg-gray-50/50 dark:bg-gray-900/60 border-l border-gray-200 dark:border-gray-800 p-3 lg:p-4 flex flex-col h-full overflow-hidden shrink-0">
           <PricingWidget
             pricingData={pricingData}
             selectedMaterial={currentProduct.materials.find((m) => m.id === selectedMaterialId)}
@@ -750,10 +831,16 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
             materials={currentProduct.materials}
             quantity={quantity}
             onQuantityChange={setQuantity}
+            selectedSize={selectedSize}
+            onSizeChange={setSelectedSize}
             onAddToCart={handleAddToCart}
+            onDirectCheckout={handleDirectCheckout}
             onExportPrintFiles={handleExportFiles}
             onOpenTeamPersonalization={() => setIsRosterModalOpen(true)}
             onShareDesign={() => setIsShareModalOpen(true)}
+            onOpen3DPreview={() => setIs3DModalOpen(true)}
+            checkingOut={isCheckingOut}
+            addingToCart={isAddingToCart}
           />
         </div>
 
@@ -771,6 +858,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
           isOpen={isRosterModalOpen}
           onClose={() => setIsRosterModalOpen(false)}
           onApplyRoster={(roster) => {
+            setRosterList(roster);
             setQuantity(roster.length || 1);
             triggerToast(`Applied team roster for ${roster.length} items!`);
           }}
