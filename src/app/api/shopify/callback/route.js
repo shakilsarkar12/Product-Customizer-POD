@@ -1,5 +1,5 @@
 import { NextResponse } from "next/server";
-import { saveCredentialsToDb } from "@/lib/mongodb";
+import { saveCredentialsToDb, getCredentialsFromDb } from "@/lib/mongodb";
 import { syncShopifyProducts } from "@/lib/shopifyProductSync";
 
 export async function GET(req) {
