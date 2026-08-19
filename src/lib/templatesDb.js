@@ -18,7 +18,7 @@ function readFallbackTemplates() {
       const content = fs.readFileSync(FALLBACK_TEMPLATES_PATH, "utf8");
       const parsed = JSON.parse(content);
       if (Array.isArray(parsed)) {
-        return parsed; // Returns even empty array [] so deleted items stay deleted
+        return parsed;
       }
     }
   } catch (err) {
@@ -37,42 +37,50 @@ function writeFallbackTemplates(templates) {
 }
 
 /**
- * Get all templates from MongoDB or File Fallback
+ * Get all configured design templates from MongoDB or fallback
  */
 export async function getTemplates() {
   try {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
-      const count = await db.collection("templates").countDocuments();
-      if (count > 0 || fs.existsSync(FALLBACK_TEMPLATES_PATH)) {
-        const templates = await db.collection("templates").find({}).sort({ createdAt: -1 }).toArray();
-        return templates.map((t) => ({ ...t, _id: undefined }));
+      const templates = await db.collection("templates").find({}).sort({ updatedAt: -1 }).toArray();
+      if (templates.length > 0) {
+        return templates.map((t) => {
+          const clean = { ...t };
+          delete clean._id;
+          return clean;
+        });
       }
     }
   } catch (err) {
     console.warn("[Templates Mongo Fetch Error]:", err.message);
   }
 
-  // If local fallback file exists, trust its contents (even if empty)
   const fallback = readFallbackTemplates();
   if (fallback !== null) {
     return fallback;
   }
 
-  // Purely dynamic - return empty array until templates are created
   return [];
 }
 
 /**
- * Create a new template in MongoDB & File Fallback
+ * Get a single template by ID
+ */
+export async function getTemplateById(id) {
+  const all = await getTemplates();
+  return all.find((t) => t.id === id) || null;
+}
+
+/**
+ * Create a new template and save to MongoDB
  */
 export async function createTemplate(templateData) {
   const newTemplate = {
     id: templateData.id || `tpl-${Date.now()}`,
-    title: templateData.title || "Untitled Custom Template",
-    category: templateData.category || "General",
-    description: templateData.description || "",
+    title: templateData.title || "Untitled Template",
+    category: templateData.category || "Custom",
     productTypes: Array.isArray(templateData.productTypes) && templateData.productTypes.length > 0
       ? templateData.productTypes
       : templateData.productType
@@ -92,14 +100,18 @@ export async function createTemplate(templateData) {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
+      const insertFields = { ...newTemplate };
+      delete insertFields._id;
+
       await db.collection("templates").updateOne(
         { id: newTemplate.id },
-        { $set: newTemplate },
+        { $set: insertFields },
         { upsert: true }
       );
+      console.log(`[Templates Mongo DB] Created template '${newTemplate.id}' in MongoDB!`);
     }
   } catch (err) {
-    console.warn("[Templates Mongo Create Error]:", err.message);
+    console.error("[Templates Mongo Create Error]:", err.message);
   }
 
   const currentList = (await getTemplates()).filter((t) => t.id !== newTemplate.id);
@@ -110,7 +122,7 @@ export async function createTemplate(templateData) {
 }
 
 /**
- * Update an existing template by ID
+ * Update an existing template by ID in MongoDB
  */
 export async function updateTemplate(id, updateData) {
   const currentList = await getTemplates();
@@ -120,9 +132,13 @@ export async function updateTemplate(id, updateData) {
     throw new Error(`Template with ID '${id}' not found.`);
   }
 
+  const cleanUpdate = { ...updateData };
+  delete cleanUpdate._id;
+  delete cleanUpdate.id;
+
   const updatedTemplate = {
     ...existing,
-    ...updateData,
+    ...cleanUpdate,
     id,
     productTypes: Array.isArray(updateData.productTypes) && updateData.productTypes.length > 0
       ? updateData.productTypes
@@ -131,18 +147,25 @@ export async function updateTemplate(id, updateData) {
       : existing.productTypes || ["all"],
     updatedAt: new Date().toISOString(),
   };
+  delete updatedTemplate._id;
 
   try {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
+      const updateFields = { ...updatedTemplate };
+      delete updateFields._id;
+
       await db.collection("templates").updateOne(
         { id },
-        { $set: updatedTemplate }
+        { $set: updateFields },
+        { upsert: true }
       );
+      console.log(`[Templates Mongo DB] Updated template '${id}' in MongoDB!`);
     }
   } catch (err) {
-    console.warn("[Templates Mongo Update Error]:", err.message);
+    console.error("[Templates Mongo Update Error]:", err.message);
+    throw err;
   }
 
   const updatedList = currentList.map((t) => (t.id === id ? updatedTemplate : t));
@@ -170,12 +193,4 @@ export async function deleteTemplate(id) {
   writeFallbackTemplates(updatedList);
 
   return { success: true, deletedId: id };
-}
-
-/**
- * Get single template by ID
- */
-export async function getTemplateById(id) {
-  const all = await getTemplates();
-  return all.find((t) => t.id === id) || null;
 }

@@ -15,17 +15,17 @@ export default function MonthlyTarget() {
   const [newTargetInput, setNewTargetInput] = useState("");
   const [isSaving, setIsSaving] = useState(false);
 
+  const currencySymbol = data?.storeInfo?.currencySymbol || "$";
   const targetData = data?.targetData || {
     monthlyTarget: 25000,
-    formattedTarget: "$25,000",
-    thisMonthRevenue: 18450,
-    formattedMonthRevenue: "$18,450",
-    todayRevenue: 1280,
-    formattedTodayRevenue: "$1,280",
-    progressPercent: 74,
+    formattedTarget: `${currencySymbol}25,000`,
+    thisMonthRevenue: 0,
+    formattedMonthRevenue: `${currencySymbol}0`,
+    todayRevenue: 0,
+    formattedTodayRevenue: `${currencySymbol}0`,
+    progressPercent: 0,
   };
 
-  const currencySymbol = data?.storeInfo?.currencySymbol || "$";
   const progress = targetData.progressPercent || 0;
   const series = [progress];
 
@@ -61,7 +61,7 @@ export default function MonthlyTarget() {
             offsetY: -40,
             color: "#1D2939",
             formatter: function (val) {
-              return `${val}%`;
+              return val + "%";
             },
           },
         },
@@ -77,110 +77,122 @@ export default function MonthlyTarget() {
     labels: ["Progress"],
   };
 
-  const handleSaveTarget = async () => {
-    const num = parseFloat(newTargetInput);
-    if (isNaN(num) || num <= 0) return;
+  const handleSaveTarget = async (e) => {
+    e.preventDefault();
+    const val = parseFloat(newTargetInput);
+    if (isNaN(val) || val <= 0) return;
+
     setIsSaving(true);
-    await updateMonthlyTarget(num);
-    setIsSaving(false);
-    setIsEditing(false);
+    try {
+      await updateMonthlyTarget(val);
+      setIsEditing(false);
+    } catch (err) {
+      console.error(err);
+    } finally {
+      setIsSaving(false);
+    }
   };
 
   return (
-    <div className="rounded-2xl border border-gray-200 bg-gray-100 dark:border-gray-800 dark:bg-white/[0.03] flex flex-col justify-between">
-      <div className="px-5 pt-5 bg-white shadow-default rounded-2xl pb-8 dark:bg-gray-900 sm:px-6 sm:pt-6">
-        <div className="flex justify-between items-start">
-          <div>
-            <h3 className="text-lg font-bold text-gray-800 dark:text-white/90 flex items-center gap-2">
-              <FiTarget className="w-5 h-5 text-brand-500" /> Monthly Target
-            </h3>
-            <p className="mt-0.5 text-xs text-gray-400">
-              Live progress against your monthly store sales goal
-            </p>
-          </div>
-
-          <button
-            onClick={() => {
-              setNewTargetInput(targetData.monthlyTarget.toString());
-              setIsEditing(!isEditing);
-            }}
-            className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/50 p-1.5 rounded-lg transition-colors"
-            title="Edit Target"
-          >
-            <FiEdit2 className="w-3.5 h-3.5" />
-            <span className="hidden sm:inline">Edit Goal</span>
-          </button>
+    <div className="rounded-2xl border border-gray-200 bg-gray-50/50 p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 flex flex-col justify-between">
+      <div className="flex justify-between items-start">
+        <div>
+          <h3 className="text-lg font-bold text-gray-800 dark:text-white/90 flex items-center gap-2">
+            <FiTarget className="w-5 h-5 text-brand-500" /> Monthly Target
+          </h3>
+          <p className="mt-0.5 text-xs text-gray-400">
+            Live progress against your monthly store sales goal
+          </p>
         </div>
 
-        {/* Edit Target Form Popup */}
-        {isEditing && (
-          <div className="mt-3 p-3 bg-brand-50/70 dark:bg-brand-950/40 border border-brand-200 dark:border-brand-800/60 rounded-xl flex items-center gap-2">
-            <span className="text-xs font-bold text-brand-700 dark:text-brand-300">{currencySymbol}</span>
-            <input
-              type="number"
-              value={newTargetInput}
-              onChange={(e) => setNewTargetInput(e.target.value)}
-              placeholder="e.g. 30000"
-              className="w-full text-xs bg-white dark:bg-gray-800 border border-brand-300 dark:border-brand-700 rounded-lg px-2.5 py-1 text-gray-900 dark:text-white focus:outline-none"
-            />
+        <div>
+          {!isEditing ? (
             <button
-              onClick={handleSaveTarget}
-              disabled={isSaving}
-              className="px-2.5 py-1 bg-brand-500 hover:bg-brand-600 text-white rounded-lg text-xs font-bold shrink-0 flex items-center gap-1 shadow-2xs"
+              onClick={() => {
+                setNewTargetInput(targetData.monthlyTarget?.toString() || "25000");
+                setIsEditing(true);
+              }}
+              className="inline-flex items-center gap-1 text-xs font-semibold text-brand-600 hover:text-brand-700 dark:text-brand-400 transition-colors"
             >
-              <FiCheck className="w-3 h-3" /> {isSaving ? "Saving..." : "Save"}
+              <FiEdit2 className="w-3.5 h-3.5" /> Edit Goal
             </button>
-            <button
-              onClick={() => setIsEditing(false)}
-              className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200 rounded-lg"
-            >
-              <FiX className="w-4 h-4" />
-            </button>
-          </div>
-        )}
-
-        {/* Radial Chart */}
-        <div className="relative mt-2">
-          <div className="max-h-[300px]">
-            <ReactApexChart options={options} series={series} type="radialBar" height={300} />
-          </div>
-
-          <span className="absolute left-1/2 top-full -translate-x-1/2 -translate-y-[95%] rounded-full bg-success-50 px-3 py-1 text-xs font-bold text-success-600 dark:bg-success-500/15 dark:text-success-500 flex items-center gap-1 shadow-2xs">
-            <FiTrendingUp className="w-3 h-3" />
-            {progress}% Achieved
-          </span>
+          ) : (
+            <form onSubmit={handleSaveTarget} className="flex items-center gap-1.5">
+              <span className="text-xs text-gray-400">{currencySymbol}</span>
+              <input
+                type="number"
+                value={newTargetInput}
+                onChange={(e) => setNewTargetInput(e.target.value)}
+                className="w-20 px-2 py-1 text-xs bg-white dark:bg-gray-800 border border-gray-300 dark:border-gray-700 rounded-lg focus:outline-none focus:border-brand-500 dark:text-white"
+                placeholder="25000"
+                autoFocus
+              />
+              <button
+                type="submit"
+                disabled={isSaving}
+                className="p-1 text-emerald-600 hover:text-emerald-700 dark:text-emerald-400"
+                title="Save"
+              >
+                <FiCheck className="w-4 h-4" />
+              </button>
+              <button
+                type="button"
+                onClick={() => setIsEditing(false)}
+                className="p-1 text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
+                title="Cancel"
+              >
+                <FiX className="w-4 h-4" />
+              </button>
+            </form>
+          )}
         </div>
-
-        <p className="mx-auto mt-8 w-full max-w-[340px] text-center text-xs text-gray-500 sm:text-sm">
-          {progress >= 100
-            ? "Congratulations! You have surpassed your monthly revenue target!"
-            : `Earned ${targetData.formattedTodayRevenue} today. Keep promoting your customized POD products!`}
-        </p>
       </div>
 
-      {/* Footer 3 Stats */}
-      <div className="flex items-center justify-around px-4 py-4 sm:py-5">
-        <div className="text-center">
-          <p className="mb-0.5 text-xs text-gray-400 font-medium">Goal Target</p>
-          <p className="text-sm sm:text-base font-extrabold text-gray-800 dark:text-white">
+      <div className="relative flex justify-center -my-6">
+        <ReactApexChart
+          options={options}
+          series={series}
+          type="radialBar"
+          height={310}
+        />
+        <div className="absolute bottom-6 flex items-center gap-1.5 text-xs font-bold text-emerald-600 bg-emerald-50 dark:bg-emerald-950/60 dark:text-emerald-400 px-3 py-1 rounded-full">
+          <FiTrendingUp className="w-3.5 h-3.5" />
+          <span>{progress}% Achieved</span>
+        </div>
+      </div>
+
+      <p className="mx-auto mt-2 w-full max-w-[380px] text-center text-xs text-gray-500 sm:w-auto dark:text-gray-400">
+        Earned {targetData.formattedTodayRevenue} today. Keep promoting your customized POD products!
+      </p>
+
+      <div className="flex items-center justify-center gap-5 px-6 py-3.5 mt-4 bg-white border border-gray-100 rounded-xl dark:bg-gray-900/60 dark:border-gray-800">
+        <div>
+          <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-400">
+            Goal Target
+          </p>
+          <p className="text-base font-extrabold text-gray-800 dark:text-white/90">
             {targetData.formattedTarget}
           </p>
         </div>
 
-        <div className="w-px bg-gray-200 h-8 dark:bg-gray-800" />
+        <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
 
-        <div className="text-center">
-          <p className="mb-0.5 text-xs text-gray-400 font-medium">This Month</p>
-          <p className="text-sm sm:text-base font-extrabold text-brand-600 dark:text-brand-400">
+        <div>
+          <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-400">
+            This Month
+          </p>
+          <p className="text-base font-extrabold text-brand-600 dark:text-brand-400">
             {targetData.formattedMonthRevenue}
           </p>
         </div>
 
-        <div className="w-px bg-gray-200 h-8 dark:bg-gray-800" />
+        <div className="w-px h-8 bg-gray-200 dark:bg-gray-700" />
 
-        <div className="text-center">
-          <p className="mb-0.5 text-xs text-gray-400 font-medium">Today</p>
-          <p className="text-sm sm:text-base font-extrabold text-emerald-600 dark:text-emerald-400">
+        <div>
+          <p className="text-[11px] uppercase font-semibold tracking-wider text-gray-400">
+            Today
+          </p>
+          <p className="text-base font-extrabold text-emerald-600 dark:text-emerald-400">
             {targetData.formattedTodayRevenue}
           </p>
         </div>

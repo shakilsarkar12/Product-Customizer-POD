@@ -34,11 +34,11 @@ function getCountryInfo(code, name) {
 export async function GET(req) {
   try {
     const creds = (await getCredentialsFromDb()) || {};
-    const shop = (creds.shopDomain || process.env.SHOPIFY_STORE_DOMAIN || "podcraft-store.myshopify.com")
+    const shop = (creds.shopDomain || process.env.SHOPIFY_STORE_DOMAIN || "")
       .replace(/^https?:\/\//, "")
       .replace(/\/$/, "");
 
-    let storeName = creds.siteName || creds.dashboardTitle || `${shop.split(".")[0].toUpperCase()} Store`;
+    let storeName = creds.siteName || creds.dashboardTitle || (shop ? `${shop.split(".")[0].toUpperCase()} Store` : "My Customizer Store");
     let currency = creds.currency || "USD";
     let currencySymbol = currency.includes("BDT") ? "৳" : currency.includes("EUR") ? "€" : currency.includes("GBP") ? "£" : "$";
     let monthlyTarget = creds.monthlyTarget || 25000;
@@ -126,7 +126,6 @@ export async function GET(req) {
       }
     }
 
-    // Default rich fallback dataset if store is newly installed without historical orders
     let totalRevenue = 0;
     let todayRevenue = 0;
     let totalOrders = shopifyOrders.length;
@@ -143,7 +142,7 @@ export async function GET(req) {
     let formattedOrders = [];
 
     if (shopifyOrders.length > 0) {
-      // Process real Shopify orders
+      // Process real live Shopify orders
       shopifyOrders.forEach((o) => {
         const price = parseFloat(o.total_price || 0);
         totalRevenue += price;
@@ -195,118 +194,32 @@ export async function GET(req) {
       });
     }
 
-    // If zero or low historical Shopify orders, populate with realistic starting POD benchmark stats
-    if (formattedOrders.length === 0) {
-      totalRevenue = 18450.0;
-      todayRevenue = 1280.0;
-      totalOrders = 348;
-      totalCustomers = 295;
-
-      const baseMonthlySales = [28, 35, 42, 38, 54, 49, 62, 58, 67, 72, 85, 94];
-      const baseMonthlyRev = [1420, 1850, 2200, 1980, 2850, 2600, 3290, 3100, 3550, 3900, 4450, 5100];
-      for (let i = 0; i < 12; i++) {
-        monthlySalesMap[i] = baseMonthlySales[i];
-        monthlyRevenueMap[i] = baseMonthlyRev[i];
-      }
-
-      formattedOrders = [
-        {
-          id: "ORD-9081",
-          orderNumber: "#ORD-9081",
-          name: "Unisex Heavy Cotton T-Shirt",
-          variants: "Custom Front & Back Print",
-          category: "Apparel",
-          price: `${currencySymbol}35.00`,
-          rawPrice: 35.0,
-          status: "Delivered",
-          customerName: "Sarah Jenkins",
-          date: "Just now",
-          image: "/images/product/product-01.jpg",
-        },
-        {
-          id: "ORD-9082",
-          orderNumber: "#ORD-9082",
-          name: "Premium Fleece Pullover Hoodie",
-          variants: "Black / Front Artwork",
-          category: "Hoodies",
-          price: `${currencySymbol}52.00`,
-          rawPrice: 52.0,
-          status: "Processing",
-          customerName: "Alex Vance",
-          date: "2 hours ago",
-          image: "/images/product/product-02.jpg",
-        },
-        {
-          id: "ORD-9083",
-          orderNumber: "#ORD-9083",
-          name: "Ceramic Coffee Mug (11 oz)",
-          variants: "Full Wrap 300 DPI",
-          category: "Drinkware",
-          price: `${currencySymbol}18.50`,
-          rawPrice: 18.5,
-          status: "Pending",
-          customerName: "Michael Scott",
-          date: "Yesterday",
-          image: "/images/product/product-03.jpg",
-        },
-        {
-          id: "ORD-9084",
-          orderNumber: "#ORD-9084",
-          name: "Organic Eco Canvas Tote Bag",
-          variants: "Natural / Vintage Logo",
-          category: "Accessories",
-          price: `${currencySymbol}24.00`,
-          rawPrice: 24.0,
-          status: "Delivered",
-          customerName: "Emma Watson",
-          date: "2 days ago",
-          image: "/images/product/product-04.jpg",
-        },
-        {
-          id: "ORD-9085",
-          orderNumber: "#ORD-9085",
-          name: "Snapback Trucker Hat",
-          variants: "Embroidery Front",
-          category: "Headwear",
-          price: `${currencySymbol}29.00`,
-          rawPrice: 29.0,
-          status: "Delivered",
-          customerName: "David Miller",
-          date: "3 days ago",
-          image: "/images/product/product-05.jpg",
-        },
-      ];
-
-      countryCountMap["US"] = { code: "US", name: "United States", count: 185 };
-      countryCountMap["GB"] = { code: "GB", name: "United Kingdom", count: 48 };
-      countryCountMap["CA"] = { code: "CA", name: "Canada", count: 35 };
-      countryCountMap["FR"] = { code: "FR", name: "France", count: 28 };
-    }
-
-    // Demographics calculation
-    const totalDemographicCount = Object.values(countryCountMap).reduce((acc, c) => acc + c.count, 0) || 1;
-    const demographicsList = Object.values(countryCountMap)
-      .sort((a, b) => b.count - a.count)
-      .slice(0, 5)
-      .map((c) => {
-        const info = getCountryInfo(c.code, c.name);
-        const percent = Math.round((c.count / totalDemographicCount) * 100);
-        return {
-          country: info.name,
-          code: c.code,
-          flag: info.flag,
-          customers: c.count,
-          percentage: percent,
-        };
-      });
+    // Demographics calculation (only from real data)
+    const totalDemographicCount = Object.values(countryCountMap).reduce((acc, c) => acc + c.count, 0) || 0;
+    const demographicsList = totalDemographicCount > 0
+      ? Object.values(countryCountMap)
+          .sort((a, b) => b.count - a.count)
+          .slice(0, 5)
+          .map((c) => {
+            const info = getCountryInfo(c.code, c.name);
+            const percent = Math.round((c.count / totalDemographicCount) * 100);
+            return {
+              country: info.name,
+              code: c.code,
+              flag: info.flag,
+              customers: c.count,
+              percentage: percent,
+            };
+          })
+      : [];
 
     // Active Templates Count from DB
     const dbTemplates = await getTemplates();
     const totalTemplates = dbTemplates.length;
 
     // Monthly Target Calculations
-    const thisMonthRevenue = monthlyRevenueMap[currentMonth] || todayRevenue || 1850;
-    const progressPercent = Math.min(100, Math.max(5, Math.round((thisMonthRevenue / monthlyTarget) * 100)));
+    const thisMonthRevenue = monthlyRevenueMap[currentMonth] || 0;
+    const progressPercent = monthlyTarget > 0 ? Math.min(100, Math.round((thisMonthRevenue / monthlyTarget) * 100)) : 0;
 
     const responsePayload = {
       storeInfo: {
@@ -319,12 +232,12 @@ export async function GET(req) {
       },
       metrics: {
         totalCustomers: totalCustomers.toLocaleString(),
-        customersGrowth: "+14.8%",
+        customersGrowth: totalCustomers > 0 ? "+100%" : "0%",
         totalOrders: totalOrders.toLocaleString(),
-        ordersGrowth: "+9.2%",
+        ordersGrowth: totalOrders > 0 ? "+100%" : "0%",
         totalRevenue: `${currencySymbol}${totalRevenue.toLocaleString(undefined, { minimumFractionDigits: 2, maximumFractionDigits: 2 })}`,
         rawTotalRevenue: totalRevenue,
-        revenueGrowth: "+18.4%",
+        revenueGrowth: totalRevenue > 0 ? "+100%" : "0%",
         totalTemplates: totalTemplates.toString(),
         templatesGrowth: "Live Active",
       },
@@ -367,8 +280,8 @@ export async function GET(req) {
         },
         annually: {
           categories: ["2024", "2025", "2026 (YTD)"],
-          sales: [450, 720, totalOrders],
-          revenue: [1250, 1980, Math.round(totalRevenue / 10)],
+          sales: [0, 0, totalOrders],
+          revenue: [0, 0, Math.round(totalRevenue / 10)],
         },
       },
     };

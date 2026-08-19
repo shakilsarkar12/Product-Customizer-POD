@@ -85,16 +85,16 @@ export async function syncShopifyProducts() {
       const productPayload = {
         id: existing?.id || `shopify-${item.id}`,
         shopifyProductId: String(item.id),
-        name: item.title,
-        category: item.product_type || "Shopify Item",
-        basePrice,
+        name: existing?.name || item.title,
+        category: existing?.category || item.product_type || "Shopify Item",
+        basePrice: existing?.basePrice !== undefined ? existing.basePrice : basePrice,
         colors: existing?.colors?.length > 0 ? existing.colors : colors,
         materials: existing?.materials || [
           { id: "standard", name: "Standard Quality", priceAddon: 0 },
           { id: "premium", name: "Premium Upgrade", priceAddon: 5.0 },
         ],
         sizes: item.options?.find((opt) => opt.name.toLowerCase() === "size")?.values || ["S", "M", "L", "XL", "2XL"],
-        views: existing?.views || [
+        views: existing?.views?.length > 0 ? existing.views : [
           {
             id: "front",
             label: "Front View",

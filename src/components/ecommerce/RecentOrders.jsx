@@ -123,9 +123,10 @@ export default function RecentOrders() {
               ))
             ) : filteredOrders.length === 0 ? (
               <TableRow>
-                <TableCell className="py-8 text-center text-gray-400 text-xs" colSpan={5}>
-                  <FiShoppingBag className="w-8 h-8 mx-auto mb-2 text-gray-300 dark:text-gray-600" />
-                  No matching orders found.
+                <TableCell className="py-12 text-center text-gray-400 text-xs" colSpan={5}>
+                  <FiShoppingBag className="w-10 h-10 mx-auto mb-2 text-gray-300 dark:text-gray-600 opacity-60" />
+                  <p className="font-semibold text-gray-600 dark:text-gray-300 text-sm">No incoming orders yet</p>
+                  <p className="text-gray-400 text-xs mt-1">When customers place orders from your Shopify store, customized print items will appear here in real-time.</p>
                 </TableCell>
               </TableRow>
             ) : (

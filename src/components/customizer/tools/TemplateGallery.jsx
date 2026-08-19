@@ -52,7 +52,12 @@ export default function TemplateGallery({
 
     // Product Filter
     if (productFilterMode === "current") {
-      const matchesCurrentProduct = isUniversal || productTypes.includes(selectedProductId);
+      const rawId = (selectedProductId || "").replace("shopify-", "");
+      const matchesCurrentProduct =
+        isUniversal ||
+        productTypes.includes(selectedProductId) ||
+        productTypes.includes(`shopify-${selectedProductId}`) ||
+        productTypes.includes(rawId);
       if (!matchesCurrentProduct) return false;
     }
 

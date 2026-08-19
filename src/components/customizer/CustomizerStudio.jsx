@@ -1,6 +1,6 @@
 "use client";
 
-import { useSearchParams } from "next/navigation";
+import { useSearchParams, useRouter } from "next/navigation";
 import React, { useState, useMemo, useEffect, useCallback } from "react";
 import Link from "next/link";
 import Image from "next/image";
@@ -40,6 +40,7 @@ import {
 } from "react-icons/fi";
 
 export default function CustomizerStudio() {
+  const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
@@ -126,13 +127,24 @@ export default function CustomizerStudio() {
   }), []);
 
   const currentProduct = useMemo(() => {
-    if (dynamicShopifyProduct) return dynamicShopifyProduct;
-    return (
-      availableProducts.find((p) => p.id === selectedProductId || p.shopifyProductId === selectedProductId) ||
-      availableProducts[0] ||
-      DEFAULT_PRODUCT_FALLBACK
+    // 1. Prioritize saved/configured product in database
+    const dbMatch = availableProducts.find(
+      (p) =>
+        p.id === selectedProductId ||
+        p.shopifyProductId === selectedProductId ||
+        (paramProductId &&
+          (p.id === paramProductId ||
+            p.shopifyProductId === paramProductId ||
+            p.shopifyProductId === paramProductId.replace("shopify-", "")))
     );
-  }, [dynamicShopifyProduct, selectedProductId, availableProducts, DEFAULT_PRODUCT_FALLBACK]);
+    if (dbMatch) return dbMatch;
+
+    // 2. If dynamic Shopify product passed in URL
+    if (dynamicShopifyProduct) return dynamicShopifyProduct;
+
+    // 3. Fallback to first product or default
+    return availableProducts[0] || DEFAULT_PRODUCT_FALLBACK;
+  }, [dynamicShopifyProduct, selectedProductId, paramProductId, availableProducts, DEFAULT_PRODUCT_FALLBACK]);
 
   const [selectedColor, setSelectedColor] = useState(
     currentProduct?.colors?.[0] || { id: "white", name: "White", hex: "#FFFFFF", image: "/images/product/product-01.jpg" }
@@ -450,12 +462,19 @@ export default function CustomizerStudio() {
       {/* Top Header Navigation Bar */}
       <header className="h-14 bg-gray-900 border-b border-gray-800 px-4 flex items-center justify-between z-30 shrink-0">
         <div className="flex items-center gap-3">
-          <Link
-            href="/customizer-admin"
-            className="flex items-center gap-2 py-1.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-extrabold rounded-xl border border-gray-700 transition-colors"
+          <button
+            type="button"
+            onClick={() => {
+              if (typeof window !== "undefined" && window.history.length > 1) {
+                router.back();
+              } else {
+                router.push("/");
+              }
+            }}
+            className="flex items-center gap-2 py-1.5 px-3 bg-gray-800 hover:bg-gray-700 text-gray-200 text-xs font-extrabold rounded-xl border border-gray-700 transition-colors cursor-pointer"
           >
             <FiArrowLeft className="w-4 h-4 text-brand-400" /> Exit Studio
-          </Link>
+          </button>
           <div className="h-5 w-px bg-gray-800" />
           <div className="flex items-center gap-2">
             <Image src="/images/logo/logo-icon.png" alt="Logo" width={24} height={24} className="w-6 h-6" />
@@ -703,6 +722,8 @@ export default function CustomizerStudio() {
           onClose={() => setIs3DModalOpen(false)}
           product={currentProduct}
           selectedColor={selectedColor}
+          layersByView={layersByView}
+          activeViewId={activeViewId}
         />
 
         <RosterModal

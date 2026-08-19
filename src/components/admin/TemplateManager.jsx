@@ -23,6 +23,7 @@ import Link from "next/link";
 import { CLIPARTS_DATA, FONTS_LIST } from "@/data/customizerData";
 import ProductPrintAreaConfigurator from "./ProductPrintAreaConfigurator";
 import ShopifyMediaPickerModal from "./ShopifyMediaPickerModal";
+import TemplateSubNavTabs from "./TemplateSubNavTabs";
 
 const AVAILABLE_CATEGORIES = [
   "All",
@@ -381,71 +382,35 @@ export default function TemplateManager() {
         </div>
       )}
 
+      {/* Admin Subpage Tab Switcher (Placed at the very top for 100% layout consistency) */}
+      <TemplateSubNavTabs templateCount={templates.length} />
+
       {/* Top Banner & Action Header */}
       <div className="bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col md:flex-row items-start md:items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2">
             <h1 className="text-xl font-extrabold text-gray-800 dark:text-white flex items-center gap-2">
-              <FiLayout className="w-6 h-6 text-brand-500" /> Merchant Customizer Studio Hub
+              <FiLayout className="w-6 h-6 text-brand-500" /> Design Template Presets Manager
             </h1>
             <span className="px-2.5 py-0.5 rounded-full text-xs font-extrabold bg-brand-50 text-brand-600 dark:bg-brand-950/60 dark:text-brand-400">
               {templates.length} Templates • {dynamicProducts.length} Products
             </span>
           </div>
           <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 max-w-2xl">
-            Configure custom Front/Back mockup images, print area dimensions (X, Y, Width, Height), and pre-designed graphics assigned to specific products.
+            Create, customize, and assign pre-designed graphic layouts (Wedding, Streetwear, Vintage, Birthday, Business) to specific store products.
           </p>
         </div>
 
-        {activeAdminTab === "templates" && (
-          <button
-            onClick={handleOpenCreateModal}
-            className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all shrink-0 cursor-pointer active:scale-95"
-          >
-            <FiPlus className="w-4 h-4" /> Create New Template
-          </button>
-        )}
-      </div>
-
-      {/* Admin Tab Switcher */}
-      <div className="flex items-center gap-2 p-1.5 bg-gray-100 dark:bg-gray-800 rounded-2xl w-full sm:w-auto self-start border border-gray-200/80 dark:border-gray-700/80">
         <button
-          onClick={() => setActiveAdminTab("templates")}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeAdminTab === "templates"
-              ? "bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-sm"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
+          onClick={handleOpenCreateModal}
+          className="px-4 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-2 transition-all shrink-0 cursor-pointer active:scale-95"
         >
-          <FiLayout className="w-4 h-4" />
-          <span>🎨 Design Template Presets</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-brand-50 text-brand-600 dark:bg-brand-950 dark:text-brand-400">
-            {templates.length}
-          </span>
-        </button>
-
-        <button
-          onClick={() => setActiveAdminTab("products-config")}
-          className={`px-4 py-2 text-xs font-bold rounded-xl transition-all flex items-center gap-2 cursor-pointer ${
-            activeAdminTab === "products-config"
-              ? "bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-sm"
-              : "text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-white"
-          }`}
-        >
-          <FiSliders className="w-4 h-4" />
-          <span>📐 Products & Print Areas Configurator</span>
-          <span className="px-2 py-0.5 rounded-full text-[10px] bg-emerald-50 text-emerald-600 dark:bg-emerald-950 dark:text-emerald-400 font-bold">
-            Front / Back
-          </span>
+          <FiPlus className="w-4 h-4" /> Create New Template
         </button>
       </div>
 
-      {activeAdminTab === "products-config" ? (
-        <ProductPrintAreaConfigurator />
-      ) : (
-        <>
-          {/* Filter & Search Bar */}
-          <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
+      {/* Filter & Search Bar */}
+      <div className="bg-white dark:bg-gray-800 rounded-2xl p-4 border border-gray-200 dark:border-gray-700 shadow-2xs flex flex-col lg:flex-row items-stretch lg:items-center justify-between gap-3">
             {/* Search */}
             <div className="relative flex-1">
               <FiSearch className="absolute left-3.5 top-1/2 -translate-y-1/2 text-gray-400 w-4 h-4" />
@@ -630,8 +595,6 @@ export default function TemplateManager() {
             );
           })}
         </div>
-      )}
-      </>
       )}
 
       {/* Delete Confirmation Modal */}

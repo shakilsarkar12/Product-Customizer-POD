@@ -236,23 +236,54 @@ export default function ProductPrintAreaConfigurator() {
   };
 
   // Save Product to DB
-  const handleSaveProduct = async () => {
-    if (!currentProduct) return;
+  const handleSaveProduct = async (productToSave = null) => {
+    // Discard React SyntheticEvent if passed via onClick
+    const isReactEvent =
+      productToSave &&
+      (productToSave.nativeEvent ||
+        productToSave.target ||
+        productToSave._reactName ||
+        typeof productToSave.preventDefault === "function");
+
+    const prod = !isReactEvent && productToSave && productToSave.id ? productToSave : currentProduct;
+    if (!prod) return;
+
     setSaving(true);
     try {
+      const cleanPayload = {
+        id: prod.id,
+        shopifyProductId: prod.shopifyProductId || "",
+        name: prod.name,
+        category: prod.category,
+        basePrice: Number(prod.basePrice) || 25,
+        colors: prod.colors || [],
+        materials: prod.materials || [],
+        sizes: prod.sizes || [],
+        views: prod.views || [],
+        handle: prod.handle || "",
+      };
+
       const res = await fetch("/api/products", {
         method: "PUT",
         headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(currentProduct),
+        body: JSON.stringify(cleanPayload),
       });
+
       if (res.ok) {
-        showToast(`Saved print area and images for "${currentProduct.name}"!`);
+        const data = await res.json();
+        if (data.product) {
+          setProducts((prev) =>
+            prev.map((p) => (p.id === data.product.id ? data.product : p))
+          );
+        }
+        showToast(`✓ Saved settings for "${prod.name}" to MongoDB!`);
       } else {
-        throw new Error("Update failed");
+        const errData = await res.json();
+        throw new Error(errData.error || "Update failed");
       }
     } catch (err) {
       console.error("[Save Product Error]:", err);
-      showToast("Failed to save product settings.");
+      showToast("Failed to save: " + err.message);
     } finally {
       setSaving(false);
     }
@@ -347,7 +378,7 @@ export default function ProductPrintAreaConfigurator() {
             <FiPlus className="w-4 h-4" /> Add Product
           </button>
           <button
-            onClick={handleSaveProduct}
+            onClick={() => handleSaveProduct()}
             disabled={saving}
             className="px-5 py-2.5 bg-brand-500 hover:bg-brand-600 text-white font-bold text-xs rounded-xl shadow-md flex items-center gap-1.5 transition-all cursor-pointer active:scale-95"
           >
@@ -417,12 +448,16 @@ export default function ProductPrintAreaConfigurator() {
                 </div>
               </div>
 
-              <Link
-                href={`/customizer?product_id=${currentProduct.id}`}
-                className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1"
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSaveProduct();
+                  window.location.href = `/customizer?product_id=${currentProduct.id}`;
+                }}
+                className="text-xs font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
               >
                 <FiExternalLink className="w-3.5 h-3.5" /> Test in Studio
-              </Link>
+              </button>
             </div>
 
             {/* Interactive Visual Preview Box */}
@@ -686,6 +721,30 @@ export default function ProductPrintAreaConfigurator() {
                   />
                 </div>
               </div>
+            </div>
+
+            {/* Save & Test Action Bar */}
+            <div className="flex items-center gap-3">
+              <button
+                type="button"
+                onClick={() => handleSaveProduct()}
+                disabled={saving}
+                className="flex-1 py-3 bg-brand-500 hover:bg-brand-600 active:scale-98 disabled:opacity-50 text-white font-extrabold text-xs rounded-2xl shadow-md flex items-center justify-center gap-2 transition-all cursor-pointer"
+              >
+                <FiCheck className="w-4 h-4" /> {saving ? "Saving Changes..." : "Save Product Configuration"}
+              </button>
+
+              <button
+                type="button"
+                onClick={async () => {
+                  await handleSaveProduct();
+                  window.location.href = `/customizer?product_id=${currentProduct.id}`;
+                }}
+                className="px-4 py-3 bg-gray-100 hover:bg-gray-200 dark:bg-gray-700 dark:hover:bg-gray-600 text-gray-800 dark:text-white font-bold text-xs rounded-2xl flex items-center justify-center gap-1.5 transition-all cursor-pointer"
+                title="Save & Launch Customizer Studio"
+              >
+                <FiExternalLink className="w-4 h-4 text-brand-500" /> Test Studio
+              </button>
             </div>
           </div>
         </div>

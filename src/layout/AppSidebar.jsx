@@ -57,7 +57,15 @@ const AppSidebar = () => {
   const [subMenuHeight, setSubMenuHeight] = useState({});
   const subMenuRefs = useRef({});
 
-  const isActive = useCallback((path) => path === pathname, [pathname]);
+  const isActive = useCallback(
+    (path) => {
+      if (path === "/templates") {
+        return pathname === "/templates" || pathname?.startsWith("/templates/");
+      }
+      return path === pathname;
+    },
+    [pathname]
+  );
 
   const handleSubmenuToggle = (index, menuType) => {
     setOpenSubmenu((prevOpenSubmenu) => {

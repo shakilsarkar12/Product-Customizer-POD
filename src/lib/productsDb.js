@@ -44,10 +44,13 @@ export async function getProducts() {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
-      const count = await db.collection("products").countDocuments();
-      if (count > 0 || fs.existsSync(FALLBACK_PRODUCTS_PATH)) {
-        const products = await db.collection("products").find({}).sort({ updatedAt: -1 }).toArray();
-        return products.map((p) => ({ ...p, _id: undefined }));
+      const products = await db.collection("products").find({}).sort({ updatedAt: -1 }).toArray();
+      if (products.length > 0) {
+        return products.map((p) => {
+          const clean = { ...p };
+          delete clean._id;
+          return clean;
+        });
       }
     }
   } catch (err) {
@@ -59,7 +62,6 @@ export async function getProducts() {
     return fallback;
   }
 
-  // Purely dynamic - return empty array until products are synced or created
   return [];
 }
 
@@ -68,7 +70,8 @@ export async function getProducts() {
  */
 export async function getProductById(id) {
   const all = await getProducts();
-  return all.find((p) => p.id === id) || null;
+  const rawId = (id || "").replace("shopify-", "");
+  return all.find((p) => p.id === id || p.shopifyProductId === id || p.shopifyProductId === rawId) || null;
 }
 
 /**
@@ -77,6 +80,7 @@ export async function getProductById(id) {
 export async function createProduct(productData) {
   const newProduct = {
     id: productData.id || `prod-${Date.now()}`,
+    shopifyProductId: productData.shopifyProductId || "",
     name: productData.name || "New Custom Product",
     category: productData.category || "Apparel",
     basePrice: Number(productData.basePrice) || 25.0,
@@ -115,14 +119,17 @@ export async function createProduct(productData) {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
+      const insertFields = { ...newProduct };
+      delete insertFields._id;
       await db.collection("products").updateOne(
         { id: newProduct.id },
-        { $set: newProduct },
+        { $set: insertFields },
         { upsert: true }
       );
+      console.log(`[Products Mongo DB] Created product '${newProduct.id}' in MongoDB!`);
     }
   } catch (err) {
-    console.warn("[Products Mongo Create Error]:", err.message);
+    console.error("[Products Mongo Create Error]:", err.message);
   }
 
   const currentList = (await getProducts()).filter((p) => p.id !== newProduct.id);
@@ -133,37 +140,50 @@ export async function createProduct(productData) {
 }
 
 /**
- * Update an existing product configuration
+ * Update an existing product configuration in MongoDB
  */
 export async function updateProduct(id, updateData) {
   const currentList = await getProducts();
-  const existing = currentList.find((p) => p.id === id);
+  const existing = currentList.find((p) => p.id === id || p.shopifyProductId === id);
 
   if (!existing) {
     throw new Error(`Product with ID '${id}' not found.`);
   }
 
+  const cleanUpdate = { ...updateData };
+  delete cleanUpdate._id;
+  delete cleanUpdate.id;
+
+  const targetId = existing.id;
+
   const updatedProduct = {
     ...existing,
-    ...updateData,
-    id,
+    ...cleanUpdate,
+    id: targetId,
     updatedAt: new Date().toISOString(),
   };
+  delete updatedProduct._id;
 
   try {
     const mongoClient = await clientPromise;
     if (mongoClient) {
       const db = mongoClient.db("shopify_customizer");
+      const updateFields = { ...updatedProduct };
+      delete updateFields._id;
+
       await db.collection("products").updateOne(
-        { id },
-        { $set: updatedProduct }
+        { id: targetId },
+        { $set: updateFields },
+        { upsert: true }
       );
+      console.log(`[Products Mongo DB] Successfully updated product '${targetId}' in MongoDB!`);
     }
   } catch (err) {
-    console.warn("[Products Mongo Update Error]:", err.message);
+    console.error("[Products Mongo Update Error]:", err.message);
+    throw err;
   }
 
-  const updatedList = currentList.map((p) => (p.id === id ? updatedProduct : p));
+  const updatedList = currentList.map((p) => (p.id === targetId ? updatedProduct : p));
   writeFallbackProducts(updatedList);
 
   return updatedProduct;

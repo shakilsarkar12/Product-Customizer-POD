@@ -1,4 +1,5 @@
 "use client";
+import React from "react";
 import Image from "next/image";
 import CountryMap from "./CountryMap";
 import { useDashboard } from "@/context/DashboardContext";
@@ -7,12 +8,7 @@ import { FiGlobe } from "react-icons/fi";
 export default function DemographicCard() {
   const { data, loading } = useDashboard();
 
-  const demographics = data?.demographics || [
-    { country: "United States", code: "US", flag: "/images/country/country-01.svg", customers: 185, percentage: 62 },
-    { country: "United Kingdom", code: "GB", flag: "/images/country/country-01.svg", customers: 48, percentage: 16 },
-    { country: "Canada", code: "CA", flag: "/images/country/country-01.svg", customers: 35, percentage: 12 },
-    { country: "France", code: "FR", flag: "/images/country/country-02.svg", customers: 28, percentage: 10 },
-  ];
+  const demographics = data?.demographics || [];
 
   return (
     <div className="rounded-2xl border border-gray-200 bg-white p-5 dark:border-gray-800 dark:bg-white/[0.03] sm:p-6 flex flex-col justify-between">
@@ -39,6 +35,12 @@ export default function DemographicCard() {
         {loading && !data ? (
           <div className="text-xs text-gray-400 animate-pulse text-center py-2">
             Loading geographical data...
+          </div>
+        ) : demographics.length === 0 ? (
+          <div className="py-4 text-center text-gray-400 text-xs flex flex-col items-center justify-center">
+            <FiGlobe className="w-7 h-7 text-gray-300 dark:text-gray-600 mb-1.5 opacity-50" />
+            <p className="font-semibold text-gray-500 dark:text-gray-400">No customer geographic data yet</p>
+            <p className="text-[11px] text-gray-400 mt-0.5">Customer countries will automatically appear as orders arrive.</p>
           </div>
         ) : (
           demographics.map((item) => (

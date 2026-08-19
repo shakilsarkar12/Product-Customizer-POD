@@ -225,28 +225,38 @@ export default function CanvasEngine({
         <div className="absolute left-0 right-0 top-1/2 h-0.5 bg-brand-500 z-40 pointer-events-none shadow-sm animate-pulse" />
       )}
 
-      {/* Main Interactive Canvas Box - Expands to occupy full available workbench viewport */}
+      {/* Aspect-Ratio-Locked Interactive Stage Frame - Matches Product Configurator 4/5 Aspect Exactly */}
       <div
         ref={containerRef}
         style={{ transform: `scale(${zoomLevel})` }}
-        className="relative w-full h-full max-w-[800px] max-h-[100%] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/90 dark:border-gray-700/90 flex items-center justify-center transition-transform duration-150 ease-out overflow-hidden"
+        className="relative h-[94%] max-h-[850px] aspect-[4/5] bg-white dark:bg-gray-800 rounded-3xl shadow-2xl border border-gray-200/90 dark:border-gray-700/90 flex items-center justify-center transition-transform duration-150 ease-out overflow-hidden shrink-0 select-none"
       >
         {/* Product Image Mockup Background */}
         <div
-          className="absolute inset-0 flex items-center justify-center p-3 sm:p-6 transition-colors duration-300"
+          className="absolute inset-0 flex items-center justify-center p-4 transition-colors duration-300 pointer-events-none select-none"
           style={{ backgroundColor: selectedColor?.hex || "#ffffff" }}
         >
-          {selectedColor?.image ? (
-            <img
-              src={selectedColor.image}
-              alt={product?.name}
-              className="w-full h-full max-h-full max-w-full object-contain pointer-events-none opacity-95 transition-all duration-300 select-none"
-            />
-          ) : (
-            <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 opacity-25">
-              <span className="text-7xl font-extrabold uppercase tracking-widest">{product?.category}</span>
-            </div>
-          )}
+          {(() => {
+            const mockupSrc =
+              (activeView?.id === "back"
+                ? (activeView?.image || selectedColor?.backImage || selectedColor?.image)
+                : (activeView?.image || selectedColor?.image || selectedColor?.backImage)) ||
+              selectedColor?.image ||
+              activeView?.image ||
+              "/images/product/product-01.jpg";
+
+            return mockupSrc ? (
+              <img
+                src={mockupSrc}
+                alt={product?.name}
+                className="w-full h-full max-h-full max-w-full object-contain pointer-events-none opacity-95 transition-all duration-300 select-none"
+              />
+            ) : (
+              <div className="w-full h-full flex flex-col items-center justify-center text-gray-400 opacity-25">
+                <span className="text-7xl font-extrabold uppercase tracking-widest">{product?.category}</span>
+              </div>
+            );
+          })()}
         </div>
 
         {/* Snap Grid Dots */}
