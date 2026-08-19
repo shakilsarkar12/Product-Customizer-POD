@@ -149,6 +149,7 @@ export async function POST(req) {
           price: Number(customUnitPrice).toFixed(2),
           quantity: Math.max(1, parseInt(quantity) || 1),
           taxable: false,
+          requires_shipping: false,
           properties: properties,
         };
 
@@ -161,6 +162,10 @@ export async function POST(req) {
             line_items: [lineItem],
             applied_discount: appliedDiscount,
             taxes_included: true,
+            shipping_line: {
+              title: "Standard Shipping (Customizer Delivery)",
+              price: "0.00",
+            },
             note: `Customized POD Product Order • Ref: ${orderId}${
               discountAmount > 0 ? ` • Bulk Tier Savings: -$${Number(discountAmount).toFixed(2)} (${discountPercent}%)` : ""
             }`,
