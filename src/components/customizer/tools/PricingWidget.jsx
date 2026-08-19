@@ -243,7 +243,7 @@ export default function PricingWidget({
 
       {/* Bottom Section: High-Converting CTAs & Trust Badges */}
       <div className="flex flex-col gap-2.5 pt-4 mt-4 border-t border-gray-200/80 dark:border-gray-700/80">
-        {/* Primary Checkout CTA: 1-Click Buy Now with Custom Price */}
+        {/* Primary Checkout CTA: 1-Click Buy Now */}
         <button
           type="button"
           onClick={onDirectCheckout}
@@ -258,7 +258,7 @@ export default function PricingWidget({
           ) : (
             <>
               <FiZap className="w-4 h-4 text-amber-300 animate-pulse" />
-              <span>Buy Now with Custom Price (${pricingData.totalPrice.toFixed(2)})</span>
+              <span>Buy Now(${pricingData.totalPrice.toFixed(2)})</span>
             </>
           )}
         </button>
@@ -278,7 +278,7 @@ export default function PricingWidget({
           ) : (
             <>
               <FiShoppingBag className="w-3.5 h-3.5 text-brand-500" />
-              <span>Add to Shopify Cart</span>
+              <span>Add to Cart</span>
             </>
           )}
         </button>

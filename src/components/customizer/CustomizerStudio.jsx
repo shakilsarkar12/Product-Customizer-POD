@@ -527,13 +527,34 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     }
   };
 
-  // 1-Click Direct Checkout via Shopify Draft Order API with Exact Custom Price
+  // 1-Click Direct Checkout via Shopify Draft Order API or Storefront Checkout
   const handleDirectCheckout = async () => {
     setIsCheckingOut(true);
+    const cleanVariantId =
+      currentProduct.variantId ||
+      currentProduct.shopifyProductId ||
+      (currentProduct.id ? String(currentProduct.id).replace(/^shopify-/, "") : "8907156684971");
+
+    const cartItem = {
+      variantId: cleanVariantId,
+      id: cleanVariantId,
+      title: `${currentProduct.name} (Customized - ${selectedSize})`,
+      quantity,
+      price: pricingData.unitPrice,
+      properties: {
+        "Customization ID": `POD-${Date.now().toString(36).toUpperCase()}`,
+        "Size": selectedSize,
+        "Color": selectedColor?.name || "Default",
+        "Material": currentProduct.materials?.find((m) => m.id === selectedMaterialId)?.name || "Standard",
+        "Custom Unit Price": `$${pricingData.unitPrice.toFixed(2)}`,
+        "Total Price": `$${pricingData.totalPrice.toFixed(2)}`,
+      },
+    };
+
     try {
       const payload = {
         productId: currentProduct.id,
-        variantId: currentProduct.variantId || null,
+        variantId: cleanVariantId,
         productTitle: currentProduct.name,
         shopDomain: paramShop,
         quantity,
@@ -553,18 +574,41 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
       });
 
       const data = await res.json();
-      if (data.success && data.checkoutUrl) {
+      if (data.success && data.checkoutUrl && !data.isFallback) {
         triggerToast(`✓ Shopify Custom Checkout Generated ($${pricingData.totalPrice.toFixed(2)})! Opening Checkout...`);
         setTimeout(() => {
           safeRedirectTop(data.checkoutUrl);
         }, 500);
       } else {
-        triggerToast(`✓ Checkout Session Ready for ${quantity}x Items ($${pricingData.totalPrice.toFixed(2)})`);
+        // Fallback to Storefront Cart Add & Checkout
+        if (typeof window !== "undefined" && window.parent) {
+          window.parent.postMessage(
+            {
+              type: "CUSTOMIZER_ADD_TO_CART",
+              payload: cartItem,
+              goToCheckout: true,
+            },
+            "*"
+          );
+        }
+        triggerToast(`✓ Adding to Shopify Checkout ($${pricingData.totalPrice.toFixed(2)})...`);
       }
     } catch (err) {
       console.error("[Direct Checkout Error]:", err);
+      if (typeof window !== "undefined" && window.parent) {
+        window.parent.postMessage(
+          {
+            type: "CUSTOMIZER_ADD_TO_CART",
+            payload: cartItem,
+            goToCheckout: true,
+          },
+          "*"
+        );
+      }
       const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
-      safeRedirectTop(`https://${targetShop}/cart`);
+      setTimeout(() => {
+        safeRedirectTop(`https://${targetShop}/cart`);
+      }, 700);
     } finally {
       setIsCheckingOut(false);
     }
@@ -573,8 +617,15 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
   // Add Customized Item to Shopify Cart with Full Line Item Properties
   const handleAddToCart = async () => {
     setIsAddingToCart(true);
+    const cleanVariantId =
+      currentProduct.variantId ||
+      currentProduct.shopifyProductId ||
+      (currentProduct.id ? String(currentProduct.id).replace(/^shopify-/, "") : "8907156684971");
+
     try {
       const cartItem = {
+        variantId: cleanVariantId,
+        id: cleanVariantId,
         title: `${currentProduct.name} (Customized - ${selectedSize})`,
         quantity,
         price: pricingData.unitPrice,
@@ -593,6 +644,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
           {
             type: "CUSTOMIZER_ADD_TO_CART",
             payload: cartItem,
+            goToCheckout: false,
           },
           "*"
         );

@@ -44,9 +44,40 @@ export async function GET(req) {
 
       <script>
         (function() {
-          window.addEventListener("message", function(event) {
-            if (event.data && (event.data.type === "SHOPIFY_REDIRECT" || event.data.type === "CUSTOMIZER_CHECKOUT") && event.data.url) {
+          window.addEventListener("message", async function(event) {
+            if (!event.data) return;
+
+            // 1. Direct Checkout Redirect from Draft Order API
+            if ((event.data.type === "SHOPIFY_REDIRECT" || event.data.type === "CUSTOMIZER_CHECKOUT") && event.data.url) {
               window.location.href = event.data.url;
+              return;
+            }
+
+            // 2. Add to Cart on Shopify Store via Storefront Cart API
+            if (event.data.type === "CUSTOMIZER_ADD_TO_CART" && event.data.payload) {
+              try {
+                var item = event.data.payload;
+                var res = await fetch("/cart/add.js", {
+                  method: "POST",
+                  headers: { "Content-Type": "application/json" },
+                  body: JSON.stringify({
+                    items: [{
+                      id: item.variantId || item.id,
+                      quantity: item.quantity || 1,
+                      properties: item.properties || {}
+                    }]
+                  })
+                });
+
+                if (event.data.goToCheckout) {
+                  window.location.href = "/checkout";
+                } else {
+                  window.location.href = "/cart";
+                }
+              } catch (e) {
+                console.error("[Customizer Storefront Cart Error]:", e);
+                window.location.href = event.data.goToCheckout ? "/checkout" : "/cart";
+              }
             }
           });
         })();
