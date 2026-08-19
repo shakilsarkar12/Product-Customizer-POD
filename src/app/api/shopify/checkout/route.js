@@ -121,21 +121,44 @@ export async function POST(req) {
       console.warn("[Shopify Checkout API] Token resolution notice:", err.message);
     }
 
-    // 3. Create Official Shopify Draft Order with Custom Price
+    // 3. Auto-resolve real Shopify Variant ID if needed for shipping & inventory profile
+    let cleanVariantId = variantId ? String(variantId).replace(/^shopify-/, "") : null;
+    const cleanProdId = productId ? String(productId).replace(/^shopify-/, "") : "";
+
+    if (token && cleanShop && cleanProdId && (!cleanVariantId || cleanVariantId === cleanProdId)) {
+      try {
+        const prodRes = await fetch(`https://${cleanShop}/admin/api/2024-01/products/${cleanProdId}.json`, {
+          headers: { "X-Shopify-Access-Token": token },
+        });
+        if (prodRes.ok) {
+          const prodJson = await prodRes.json();
+          if (prodJson.product?.variants?.[0]?.id) {
+            cleanVariantId = String(prodJson.product.variants[0].id);
+          }
+        }
+      } catch (varErr) {
+        console.warn("[Shopify Checkout API] Variant resolve note:", varErr.message);
+      }
+    }
+
+    // 4. Create Official Shopify Draft Order with Custom Price
     if (token && cleanShop) {
       try {
+        const lineItem = {
+          title: `${productTitle} (Customized - ${selectedSize || "Standard"})`,
+          price: Number(customUnitPrice).toFixed(2),
+          quantity: Math.max(1, parseInt(quantity) || 1),
+          taxable: false,
+          properties: properties,
+        };
+
+        if (cleanVariantId && /^\d+$/.test(cleanVariantId)) {
+          lineItem.variant_id = parseInt(cleanVariantId);
+        }
+
         const draftOrderPayload = {
           draft_order: {
-            line_items: [
-              {
-                title: `${productTitle} (Customized - ${selectedSize || "Standard"})`,
-                price: Number(customUnitPrice).toFixed(2),
-                quantity: Math.max(1, parseInt(quantity) || 1),
-                requires_shipping: true,
-                taxable: false,
-                properties: properties,
-              },
-            ],
+            line_items: [lineItem],
             applied_discount: appliedDiscount,
             taxes_included: true,
             note: `Customized POD Product Order • Ref: ${orderId}${
