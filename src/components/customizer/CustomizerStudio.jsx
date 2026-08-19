@@ -494,7 +494,15 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
   const safeRedirectTop = (url) => {
     if (!url) return;
 
-    // 1. PostMessage to parent frame (if inside Shopify Store / App Proxy)
+    // 1. Direct window.top location (works if not sandbox blocked)
+    try {
+      if (typeof window !== "undefined" && window.top && window.top !== window.self) {
+        window.top.location.href = url;
+        return;
+      }
+    } catch (_) {}
+
+    // 2. PostMessage to parent frame (Shopify Store / App Proxy)
     if (typeof window !== "undefined" && window.parent) {
       try {
         window.parent.postMessage({ type: "SHOPIFY_REDIRECT", url }, "*");
@@ -502,7 +510,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
       } catch (_) {}
     }
 
-    // 2. DOM link with target="_top" (browser-standard breakout of iframe)
+    // 3. DOM link with target="_top"
     try {
       const a = document.createElement("a");
       a.href = url;
@@ -514,19 +522,11 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
       return;
     } catch (_) {}
 
-    // 3. Direct window.top location
-    try {
-      if (window.top && window.top.location) {
-        window.top.location.href = url;
-        return;
-      }
-    } catch (_) {}
-
     // 4. Fallback window.location or window.open
     try {
       window.location.href = url;
     } catch (_) {
-      window.open(url, "_blank");
+      window.open(url, "_top");
     }
   };
 
@@ -536,7 +536,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     const cleanVariantId =
       currentProduct.variantId ||
       currentProduct.shopifyProductId ||
-      (currentProduct.id ? String(currentProduct.id).replace(/^shopify-/, "") : "8907156684971");
+      (currentProduct.id ? String(currentProduct.id).replace(/^shopify-/, "") : "");
 
     const cartItem = {
       variantId: cleanVariantId,
@@ -584,43 +584,20 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         triggerToast(`✓ Opening Shopify Checkout ($${pricingData.totalPrice.toFixed(2)})...`);
         setTimeout(() => {
           safeRedirectTop(data.checkoutUrl);
-        }, 300);
+        }, 200);
       } else {
-        // Fallback to Storefront Cart Add & Direct Checkout
-        if (typeof window !== "undefined" && window.parent) {
-          window.parent.postMessage(
-            {
-              type: "CUSTOMIZER_ADD_TO_CART",
-              payload: cartItem,
-              goToCheckout: true,
-            },
-            "*"
-          );
-        }
         const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
-        const checkoutPermalink = `https://${targetShop}/cart/${cleanVariantId}:${quantity || 1}`;
-        triggerToast(`✓ Redirecting to Shopify Checkout...`);
+        triggerToast(`✓ Opening Checkout...`);
         setTimeout(() => {
-          safeRedirectTop(checkoutPermalink);
-        }, 400);
+          safeRedirectTop(`https://${targetShop}/checkout`);
+        }, 300);
       }
     } catch (err) {
       console.error("[Direct Checkout Error]:", err);
-      if (typeof window !== "undefined" && window.parent) {
-        window.parent.postMessage(
-          {
-            type: "CUSTOMIZER_ADD_TO_CART",
-            payload: cartItem,
-            goToCheckout: true,
-          },
-          "*"
-        );
-      }
       const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
-      const checkoutPermalink = `https://${targetShop}/cart/${cleanVariantId}:${quantity || 1}`;
       setTimeout(() => {
-        safeRedirectTop(checkoutPermalink);
-      }, 500);
+        safeRedirectTop(`https://${targetShop}/checkout`);
+      }, 300);
     } finally {
       setIsCheckingOut(false);
     }

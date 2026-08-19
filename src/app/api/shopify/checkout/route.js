@@ -2,6 +2,19 @@ import { NextResponse } from "next/server";
 import { getValidAdminAccessToken } from "@/lib/shopifyTokenService";
 import { getCredentialsFromDb } from "@/lib/mongodb";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Methods": "GET, POST, PUT, DELETE, OPTIONS",
+  "Access-Control-Allow-Headers": "Content-Type, Authorization, X-Requested-With, ngrok-skip-browser-warning",
+};
+
+export async function OPTIONS() {
+  return new NextResponse(null, {
+    status: 200,
+    headers: corsHeaders,
+  });
+}
+
 /**
  * Dynamic Custom Pricing & Shopify Draft Order Checkout Generator
  * Creates an official Shopify Checkout session with custom unit price,
@@ -44,32 +57,27 @@ export async function POST(req) {
     // 1. Format Line Item Properties for Shopify Order & Factory Production
     const properties = [
       { name: "Customization ID", value: orderId },
-      { name: "Size", value: String(selectedSize || "Standard") },
+      { name: "Size", value: String(selectedSize || "L").toUpperCase() },
+      { name: "Color", value: selectedColor?.name || "Default Color" },
+      {
+        name: "Material Quality",
+        value: `${selectedMaterial?.name || "Standard Quality"}${
+          selectedMaterial?.priceAddon ? ` (+$${selectedMaterial.priceAddon.toFixed(2)})` : ""
+        }`,
+      },
     ];
 
-    if (selectedColor?.name) {
-      properties.push({ name: "Color", value: selectedColor.name });
-    }
-    if (selectedMaterial?.name) {
-      properties.push({
-        name: "Material",
-        value: `${selectedMaterial.name}${selectedMaterial.priceAddon > 0 ? ` (+$${selectedMaterial.priceAddon.toFixed(2)})` : ""}`,
-      });
-    }
-
-    // Detail per view (Front, Back, Sleeve, etc.)
-    Object.entries(layersByView).forEach(([viewKey, viewLayers]) => {
-      if (Array.isArray(viewLayers) && viewLayers.length > 0) {
-        const descriptions = viewLayers
-          .filter((l) => !l.hidden)
+    // Add per-view customization summary
+    Object.entries(layersByView).forEach(([viewKey, layers]) => {
+      if (Array.isArray(layers) && layers.length > 0) {
+        const descriptions = layers
           .map((l) => {
-            if (l.type === "text") return `Text: "${l.text}" (${l.fontFamily || "Inter"})`;
-            if (l.type === "image") return `Uploaded Image`;
-            if (l.type === "clipart") return `Clipart Graphic`;
-            return l.type;
+            if (l.type === "text") return `Text: "${l.text || ""}" (${l.fontFamily || "Default"})`;
+            if (l.type === "image") return `Graphic: [Uploaded Artwork]`;
+            if (l.type === "clipart") return `Clipart: [Vector Asset]`;
+            return `Layer: ${l.type}`;
           })
-          .join(", ");
-
+          .join(" • ");
         if (descriptions) {
           const capitalizedView = viewKey.charAt(0).toUpperCase() + viewKey.slice(1);
           properties.push({ name: `${capitalizedView} Customization`, value: descriptions });
@@ -89,9 +97,17 @@ export async function POST(req) {
       value: `$${Number(customUnitPrice).toFixed(2)}`,
     });
 
+    if (Number(discountAmount) > 0) {
+      properties.push({
+        name: "Bulk Volume Savings",
+        value: `${discountPercent}% OFF (-$${Number(discountAmount).toFixed(2)})`,
+      });
+    }
+
     // 2. Fetch Active Shopify Store & Token
     const dbCreds = (await getCredentialsFromDb()) || {};
     const shopDomain =
+      body.shopDomain ||
       dbCreds.shopDomain ||
       process.env.SHOPIFY_STORE_DOMAIN ||
       "t-customizer-mjng1g1b.myshopify.com";
@@ -146,14 +162,17 @@ export async function POST(req) {
 
           if (draftOrder && draftOrder.invoice_url) {
             console.log(`[Shopify Checkout API] Created Draft Order #${draftOrder.name} -> ${draftOrder.invoice_url}`);
-            return NextResponse.json({
-              success: true,
-              checkoutUrl: draftOrder.invoice_url,
-              orderId: draftOrder.id,
-              orderName: draftOrder.name,
-              totalPrice: draftOrder.total_price || totalPrice,
-              properties,
-            });
+            return NextResponse.json(
+              {
+                success: true,
+                checkoutUrl: draftOrder.invoice_url,
+                orderId: draftOrder.id,
+                orderName: draftOrder.name,
+                totalPrice: draftOrder.total_price || totalPrice,
+                properties,
+              },
+              { headers: corsHeaders }
+            );
           }
         } else {
           const errBody = await shopifyRes.text();
@@ -164,26 +183,27 @@ export async function POST(req) {
       }
     }
 
-    // 4. Direct Storefront Checkout Permalink Fallback
-    const fallbackCheckoutUrl = variantId
-      ? `https://${cleanShop}/cart/${variantId}:${quantity || 1}`
-      : `https://${cleanShop}/checkout`;
+    // 4. Direct Storefront Checkout Fallback
+    const fallbackCheckoutUrl = `https://${cleanShop}/checkout`;
 
-    return NextResponse.json({
-      success: true,
-      checkoutUrl: fallbackCheckoutUrl,
-      orderId: orderId,
-      orderName: `#${orderId}`,
-      isFallback: true,
-      customUnitPrice: Number(customUnitPrice).toFixed(2),
-      properties,
-      message: "Customized order prepared for direct checkout!",
-    });
+    return NextResponse.json(
+      {
+        success: true,
+        checkoutUrl: fallbackCheckoutUrl,
+        orderId: orderId,
+        orderName: `#${orderId}`,
+        isFallback: true,
+        customUnitPrice: Number(customUnitPrice).toFixed(2),
+        properties,
+        message: "Customized order prepared for direct checkout!",
+      },
+      { headers: corsHeaders }
+    );
   } catch (error) {
     console.error("[Shopify Checkout API Route Error]:", error);
     return NextResponse.json(
       { success: false, error: error.message || "Failed to process custom checkout" },
-      { status: 500 }
+      { status: 500, headers: corsHeaders }
     );
   }
 }
