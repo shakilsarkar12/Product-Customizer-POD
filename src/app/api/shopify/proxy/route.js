@@ -45,17 +45,20 @@ export async function GET(req) {
 
       <script>
         (function() {
+          var isRedirecting = false;
           window.addEventListener("message", async function(event) {
-            if (!event.data) return;
+            if (!event.data || isRedirecting) return;
 
             // 1. Direct Checkout Redirect from Draft Order API
-            if ((event.data.type === "SHOPIFY_REDIRECT" || event.data.type === "CUSTOMIZER_CHECKOUT") && event.data.url) {
+            if (event.data.type === "SHOPIFY_REDIRECT" && event.data.url) {
+              isRedirecting = true;
               window.location.href = event.data.url;
               return;
             }
 
             // 2. Add to Cart on Shopify Store via Storefront Cart API
             if (event.data.type === "CUSTOMIZER_ADD_TO_CART" && event.data.payload) {
+              isRedirecting = true;
               try {
                 var item = event.data.payload;
                 var res = await fetch("/cart/add.js", {

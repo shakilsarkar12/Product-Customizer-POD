@@ -142,7 +142,6 @@ export async function POST(req) {
               discountAmount > 0 ? ` • Bulk Tier Savings: -$${Number(discountAmount).toFixed(2)} (${discountPercent}%)` : ""
             }`,
             tags: "POD_Customized, Customizer_Studio, Custom_Price",
-            use_customer_default_address: true,
           },
         };
 

@@ -494,35 +494,20 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
   const safeRedirectTop = (url) => {
     if (!url) return;
 
-    // 1. Direct window.top location (works if not sandbox blocked)
-    try {
-      if (typeof window !== "undefined" && window.top && window.top !== window.self) {
-        window.top.location.href = url;
-        return;
-      }
-    } catch (_) {}
-
-    // 2. PostMessage to parent frame (Shopify Store / App Proxy)
-    if (typeof window !== "undefined" && window.parent) {
+    // 1. If inside an iframe (Shopify App Proxy), break out cleanly to top merchant window
+    if (typeof window !== "undefined" && window.top && window.top !== window.self) {
       try {
         window.parent.postMessage({ type: "SHOPIFY_REDIRECT", url }, "*");
-        window.parent.postMessage({ type: "CUSTOMIZER_CHECKOUT", url }, "*");
+        return;
+      } catch (_) {}
+
+      try {
+        window.top.location.href = url;
+        return;
       } catch (_) {}
     }
 
-    // 3. DOM link with target="_top"
-    try {
-      const a = document.createElement("a");
-      a.href = url;
-      a.target = "_top";
-      a.rel = "noopener noreferrer";
-      document.body.appendChild(a);
-      a.click();
-      document.body.removeChild(a);
-      return;
-    } catch (_) {}
-
-    // 4. Fallback window.location or window.open
+    // 2. Direct standalone navigation
     try {
       window.location.href = url;
     } catch (_) {
