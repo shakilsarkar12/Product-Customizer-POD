@@ -23,7 +23,10 @@ export function calculateCustomizerPrice({
     };
   }
 
-  const basePrice = product.basePrice || 0;
+  const basePrice =
+    Number(product.basePrice) !== undefined && !isNaN(Number(product.basePrice)) && Number(product.basePrice) > 0
+      ? Number(product.basePrice)
+      : 25.0;
 
   // Material addon
   const materialObj = (product.materials || []).find((m) => m.id === selectedMaterialId);

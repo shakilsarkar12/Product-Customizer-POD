@@ -39,7 +39,7 @@ import {
   FiX,
 } from "react-icons/fi";
 
-export default function CustomizerStudio() {
+export default function CustomizerStudio({ initialProducts = [], initialTemplates = [] }) {
   const router = useRouter();
   const [mounted, setMounted] = useState(false);
 
@@ -54,6 +54,25 @@ export default function CustomizerStudio() {
   const paramPrice = searchParams ? searchParams.get("price") : null;
   const paramColor = searchParams ? searchParams.get("color") : null;
   const paramTemplateId = searchParams ? searchParams.get("templateId") || searchParams.get("template") : null;
+
+  // Dynamic available products from database (initialized from server-side prefetch)
+  const [availableProducts, setAvailableProducts] = useState(initialProducts || []);
+
+  const initialMatchingId = useMemo(() => {
+    if (!paramProductId) return initialProducts?.[0]?.id || "";
+    const raw = paramProductId.replace(/^shopify-/, "");
+    const match = initialProducts?.find(
+      (p) =>
+        p.id === paramProductId ||
+        p.shopifyProductId === paramProductId ||
+        p.shopifyProductId === raw ||
+        p.id === `shopify-${raw}`
+    );
+    return match ? match.id : paramProductId;
+  }, [paramProductId, initialProducts]);
+
+  // Product selection state
+  const [selectedProductId, setSelectedProductId] = useState(initialMatchingId);
 
   // Dynamic Shopify Product passed via URL parameters
   const dynamicShopifyProduct = useMemo(() => {
@@ -77,19 +96,13 @@ export default function CustomizerStudio() {
         ],
         sizes: ["S", "M", "L", "XL", "2XL"],
         views: [
-          { id: "front", label: "Front View", printArea: { x: 25, y: 22, width: 50, height: 60 } },
-          { id: "back", label: "Back View", printArea: { x: 25, y: 20, width: 50, height: 65 } },
+          { id: "front", label: "Front View", image: paramProductImage || "/images/product/product-01.jpg", printArea: { x: 25, y: 22, width: 50, height: 60 } },
+          { id: "back", label: "Back View", image: paramProductImage || "/images/product/product-02.jpg", printArea: { x: 25, y: 20, width: 50, height: 65 } },
         ],
       };
     }
     return null;
   }, [paramProductId, paramProductTitle, paramProductImage, paramPrice, paramColor]);
-
-  // Product selection state (MUST be declared before effects)
-  const [selectedProductId, setSelectedProductId] = useState(paramProductId || "");
-
-  // Dynamic available products from database
-  const [availableProducts, setAvailableProducts] = useState([]);
 
   useEffect(() => {
     fetch("/api/products", { cache: "no-store" })
@@ -98,10 +111,14 @@ export default function CustomizerStudio() {
         if (data && data.products && data.products.length > 0) {
           setAvailableProducts(data.products);
           setSelectedProductId((currentId) => {
-            if (currentId && data.products.some((p) => p.id === currentId || p.shopifyProductId === currentId)) {
-              return currentId;
-            }
-            return paramProductId || data.products[0].id;
+            const rawParam = (paramProductId || "").replace(/^shopify-/, "");
+            const match = data.products.find(
+              (p) =>
+                p.id === currentId ||
+                p.shopifyProductId === currentId ||
+                (rawParam && (p.id === paramProductId || p.shopifyProductId === paramProductId || p.shopifyProductId === rawParam || p.id === `shopify-${rawParam}`))
+            );
+            return match ? match.id : (paramProductId || data.products[0].id);
           });
         }
       })
@@ -127,23 +144,30 @@ export default function CustomizerStudio() {
   }), []);
 
   const currentProduct = useMemo(() => {
+    const rawParamId = (paramProductId || "").replace(/^shopify-/, "");
+    const rawSelectedId = (selectedProductId || "").replace(/^shopify-/, "");
+
     // 1. Prioritize saved/configured product in database
-    const dbMatch = availableProducts.find(
-      (p) =>
-        p.id === selectedProductId ||
-        p.shopifyProductId === selectedProductId ||
-        (paramProductId &&
-          (p.id === paramProductId ||
-            p.shopifyProductId === paramProductId ||
-            p.shopifyProductId === paramProductId.replace("shopify-", "")))
-    );
-    if (dbMatch) return dbMatch;
+    if (availableProducts && availableProducts.length > 0) {
+      const dbMatch = availableProducts.find(
+        (p) =>
+          p.id === selectedProductId ||
+          p.shopifyProductId === selectedProductId ||
+          (rawSelectedId && (p.shopifyProductId === rawSelectedId || p.id === `shopify-${rawSelectedId}`)) ||
+          (paramProductId &&
+            (p.id === paramProductId ||
+              p.shopifyProductId === paramProductId ||
+              p.shopifyProductId === rawParamId ||
+              p.id === `shopify-${rawParamId}`))
+      );
+      if (dbMatch) return dbMatch;
+    }
 
     // 2. If dynamic Shopify product passed in URL
     if (dynamicShopifyProduct) return dynamicShopifyProduct;
 
     // 3. Fallback to first product or default
-    return availableProducts[0] || DEFAULT_PRODUCT_FALLBACK;
+    return availableProducts?.[0] || DEFAULT_PRODUCT_FALLBACK;
   }, [dynamicShopifyProduct, selectedProductId, paramProductId, availableProducts, DEFAULT_PRODUCT_FALLBACK]);
 
   const [selectedColor, setSelectedColor] = useState(
