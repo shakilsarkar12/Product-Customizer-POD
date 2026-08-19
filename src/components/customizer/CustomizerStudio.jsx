@@ -54,6 +54,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
   const paramPrice = searchParams ? searchParams.get("price") : null;
   const paramColor = searchParams ? searchParams.get("color") : null;
   const paramTemplateId = searchParams ? searchParams.get("templateId") || searchParams.get("template") : null;
+  const paramShop = searchParams ? searchParams.get("shop") : null;
 
   // Dynamic available products from database (initialized from server-side prefetch)
   const [availableProducts, setAvailableProducts] = useState(initialProducts || []);
@@ -486,6 +487,46 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     triggerToast(`High-Res 300DPI Metadata & JSON exported! (${result.orderId})`);
   };
 
+  // Universal Iframe Break-Out Redirection to Shopify Top Window
+  const safeRedirectTop = (url) => {
+    if (!url) return;
+
+    // 1. PostMessage to parent frame (if inside Shopify Store / App Proxy)
+    if (typeof window !== "undefined" && window.parent) {
+      try {
+        window.parent.postMessage({ type: "SHOPIFY_REDIRECT", url }, "*");
+        window.parent.postMessage({ type: "CUSTOMIZER_CHECKOUT", url }, "*");
+      } catch (_) {}
+    }
+
+    // 2. DOM link with target="_top" (browser-standard breakout of iframe)
+    try {
+      const a = document.createElement("a");
+      a.href = url;
+      a.target = "_top";
+      a.rel = "noopener noreferrer";
+      document.body.appendChild(a);
+      a.click();
+      document.body.removeChild(a);
+      return;
+    } catch (_) {}
+
+    // 3. Direct window.top location
+    try {
+      if (window.top && window.top.location) {
+        window.top.location.href = url;
+        return;
+      }
+    } catch (_) {}
+
+    // 4. Fallback window.location or window.open
+    try {
+      window.location.href = url;
+    } catch (_) {
+      window.open(url, "_blank");
+    }
+  };
+
   // 1-Click Direct Checkout via Shopify Draft Order API with Exact Custom Price
   const handleDirectCheckout = async () => {
     setIsCheckingOut(true);
@@ -494,6 +535,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         productId: currentProduct.id,
         variantId: currentProduct.variantId || null,
         productTitle: currentProduct.name,
+        shopDomain: paramShop,
         quantity,
         customUnitPrice: pricingData.unitPrice,
         totalPrice: pricingData.totalPrice,
@@ -512,20 +554,17 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
 
       const data = await res.json();
       if (data.success && data.checkoutUrl) {
-        triggerToast(`✓ Shopify Custom Checkout Generated ($${pricingData.totalPrice.toFixed(2)})! Redirecting...`);
+        triggerToast(`✓ Shopify Custom Checkout Generated ($${pricingData.totalPrice.toFixed(2)})! Opening Checkout...`);
         setTimeout(() => {
-          if (window.top && window.top !== window.self) {
-            window.top.location.href = data.checkoutUrl;
-          } else {
-            window.location.href = data.checkoutUrl;
-          }
-        }, 600);
+          safeRedirectTop(data.checkoutUrl);
+        }, 500);
       } else {
         triggerToast(`✓ Checkout Session Ready for ${quantity}x Items ($${pricingData.totalPrice.toFixed(2)})`);
       }
     } catch (err) {
       console.error("[Direct Checkout Error]:", err);
-      triggerToast(`✓ Order Prepared! Total: $${pricingData.totalPrice.toFixed(2)}`);
+      const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
+      safeRedirectTop(`https://${targetShop}/cart`);
     } finally {
       setIsCheckingOut(false);
     }

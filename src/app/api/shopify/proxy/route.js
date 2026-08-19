@@ -31,15 +31,26 @@ export async function GET(req) {
     // Full customizer URL with complete origin so iframe loads the full app directly with server prefetch
     const customizerSrc = `${appUrl}/customizer?shop=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(finalProdId)}&title=${encodeURIComponent(title)}&image=${encodeURIComponent(image)}&price=${encodeURIComponent(price)}`;
 
-    // Shopify App Proxy returns Liquid/HTML rendered inside merchant theme
+    // Shopify App Proxy returns Liquid/HTML rendered inside merchant theme with parent window redirect listener
     const liquidHtml = `
       <div id="podcraft-customizer-app-proxy" style="width: 100%; min-height: 850px; border: none; margin: 0; padding: 0;">
         <iframe
+          id="podcraft-customizer-iframe"
           src="${customizerSrc}"
           style="width: 100%; height: 950px; border: none; border-radius: 16px;"
-          allow="camera; microphone; clipboard-read; clipboard-write;"
+          allow="camera; microphone; clipboard-read; clipboard-write; payment;"
         ></iframe>
       </div>
+
+      <script>
+        (function() {
+          window.addEventListener("message", function(event) {
+            if (event.data && (event.data.type === "SHOPIFY_REDIRECT" || event.data.type === "CUSTOMIZER_CHECKOUT") && event.data.url) {
+              window.location.href = event.data.url;
+            }
+          });
+        })();
+      </script>
     `;
 
     return new Response(liquidHtml, {
