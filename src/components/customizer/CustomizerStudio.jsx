@@ -49,6 +49,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
 
   const searchParams = useSearchParams();
   const paramProductId = searchParams ? searchParams.get("product_id") || searchParams.get("id") : null;
+  const paramVariantId = searchParams ? searchParams.get("variant_id") || searchParams.get("variant") : null;
   const paramProductTitle = searchParams ? searchParams.get("title") || searchParams.get("product_title") || searchParams.get("name") : null;
   const paramProductImage = searchParams ? searchParams.get("image") || searchParams.get("product_image") || searchParams.get("img") : null;
   const paramPrice = searchParams ? searchParams.get("price") : null;
@@ -80,6 +81,8 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
     if (paramProductImage || paramProductTitle) {
       return {
         id: paramProductId || "shopify-custom-product",
+        variantId: paramVariantId || "",
+        shopifyProductId: paramProductId?.replace(/^shopify-/, "") || "",
         name: paramProductTitle || "Shopify Custom Product",
         category: "Shopify Item",
         basePrice: paramPrice ? parseFloat(paramPrice) : 25.0,

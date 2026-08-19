@@ -94,6 +94,8 @@ export async function syncShopifyProducts() {
           { id: "premium", name: "Premium Upgrade", priceAddon: 5.0 },
         ],
         sizes: item.options?.find((opt) => opt.name.toLowerCase() === "size")?.values || ["S", "M", "L", "XL", "2XL"],
+        variantId: String(item.variants?.[0]?.id || ""),
+        variants: item.variants || [],
         views: existing?.views?.length > 0 ? existing.views : [
           {
             id: "front",

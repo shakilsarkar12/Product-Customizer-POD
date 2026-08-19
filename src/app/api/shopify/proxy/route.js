@@ -27,9 +27,10 @@ export async function GET(req) {
     ) || allProducts[0];
 
     const finalProdId = targetProduct?.id || productId;
+    const variantId = targetProduct?.variantId || searchParams.get("variant_id") || "";
 
     // Full customizer URL with complete origin so iframe loads the full app directly with server prefetch
-    const customizerSrc = `${appUrl}/customizer?shop=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(finalProdId)}&title=${encodeURIComponent(title)}&image=${encodeURIComponent(image)}&price=${encodeURIComponent(price)}`;
+    const customizerSrc = `${appUrl}/customizer?shop=${encodeURIComponent(shop)}&product_id=${encodeURIComponent(finalProdId)}&variant_id=${encodeURIComponent(variantId)}&title=${encodeURIComponent(title)}&image=${encodeURIComponent(image)}&price=${encodeURIComponent(price)}`;
 
     // Shopify App Proxy returns Liquid/HTML rendered inside merchant theme with parent window redirect listener
     const liquidHtml = `
