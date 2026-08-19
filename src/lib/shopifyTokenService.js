@@ -2,12 +2,13 @@ import { saveCredentialsToDb, getCredentialsFromDb } from "./mongodb";
 
 /**
  * Shopify Admin Access Token Manager with MongoDB Persistence & 23-Hour Auto-Refresh Engine
+ * Uses Shopify's Official Client Credentials Flow (grant_type: "client_credentials")
  */
 
 const TOKEN_EXPIRY_MS = 23 * 60 * 60 * 1000; // 23 Hours in milliseconds
 
 /**
- * Exchange Client ID & Secret for a Fresh Shopify Admin Access Token and save to MongoDB
+ * Generate fresh Admin Access Token from Shopify via client_credentials grant and save to MongoDB
  */
 export async function refreshShopifyAccessToken({
   shopDomain,
@@ -24,41 +25,48 @@ export async function refreshShopifyAccessToken({
   // Load existing credentials from DB if not passed directly
   const existingDbData = (await getCredentialsFromDb()) || {};
 
-  const shop = (shopDomain || existingDbData.shopDomain || process.env.SHOPIFY_STORE_DOMAIN || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
+  const shop = (shopDomain || process.env.SHOPIFY_STORE_DOMAIN || existingDbData.shopDomain || "").replace(/^https?:\/\//, "").replace(/\/$/, "");
   const id = clientId || process.env.SHOPIFY_CLIENT_ID || existingDbData.clientId;
   const secret = clientSecret || process.env.SHOPIFY_CLIENT_SECRET || existingDbData.clientSecret;
 
   let freshAccessToken = accessToken || null;
+  let tokenExpiresIn = TOKEN_EXPIRY_MS;
 
   if (!freshAccessToken && shop && id && secret) {
     try {
       const shopifyUrl = `https://${shop}/admin/oauth/access_token`;
-      console.log(`[Shopify Token Engine] Requesting token exchange at: ${shopifyUrl}...`);
+      console.log(`[Shopify Token Engine] Requesting fresh 24h Admin Token from Shopify: ${shopifyUrl}...`);
+
+      const params = new URLSearchParams();
+      params.append("grant_type", "client_credentials");
+      params.append("client_id", id);
+      params.append("client_secret", secret);
 
       const response = await fetch(shopifyUrl, {
         method: "POST",
-        headers: { 
-          "Content-Type": "application/json",
-          "Accept": "application/json"
+        headers: {
+          "Content-Type": "application/x-www-form-urlencoded",
+          "Accept": "application/json",
         },
-        body: JSON.stringify({
-          client_id: id,
-          client_secret: secret,
-        }),
+        body: params.toString(),
       });
 
       if (response.ok) {
         const data = await response.json();
         if (data.access_token) {
           freshAccessToken = data.access_token;
-          console.log("[Shopify Token Engine] Token exchange successful directly with Shopify!");
+          // Use 23 hours or expires_in minus 1 hour buffer
+          if (data.expires_in) {
+            tokenExpiresIn = Math.max(3600 * 1000, (data.expires_in - 3600) * 1000);
+          }
+          console.log(`[Shopify Token Engine] Successfully generated fresh Shopify Admin Token (${freshAccessToken.substring(0, 10)}...)! Valid for 23 Hours.`);
         }
       } else {
         const errText = await response.text();
-        console.warn(`[Shopify Token Engine Warning] Response ${response.status}: ${errText.substring(0, 200)}`);
+        console.warn(`[Shopify Token Engine Warning] Status ${response.status}: ${errText.substring(0, 200)}`);
       }
     } catch (err) {
-      console.warn("[Shopify Token Engine Error]:", err.message);
+      console.error("[Shopify Token Engine Error]:", err.message);
     }
   }
 
@@ -68,7 +76,7 @@ export async function refreshShopifyAccessToken({
   }
 
   const now = Date.now();
-  const expiresAt = now + TOKEN_EXPIRY_MS;
+  const expiresAt = now + tokenExpiresIn;
 
   const tokenRecord = {
     ...existingDbData,
@@ -81,16 +89,16 @@ export async function refreshShopifyAccessToken({
     siteName: siteName || existingDbData.siteName || `${shop.split(".")[0]} Customizer`,
     dashboardTitle: dashboardTitle || existingDbData.dashboardTitle || `${shop.split(".")[0]} Overview`,
     supportEmail: supportEmail || existingDbData.supportEmail || `support@${shop}`,
-    timezone: timezone || existingDbData.timezone || "UTC+06:00 (Dhaka)",
+    timezone: timezone || existingDbData.timezone || "America/New_York",
     currency: currency || existingDbData.currency || "USD ($)",
     language: language || existingDbData.language || "en",
   };
 
-  // PERSIST DIRECTLY TO MONGODB DATABASE & FALLBACK
+  // PERSIST DIRECTLY TO MONGODB DATABASE
   await saveCredentialsToDb(tokenRecord);
 
   console.log(
-    `[Shopify Token Engine] Admin Access Token saved to MongoDB! Expires in 23h (${new Date(expiresAt).toLocaleString()})`
+    `[Shopify Token Engine] Token saved to MongoDB! Next auto-refresh in 23h (${new Date(expiresAt).toLocaleString()})`
   );
 
   return tokenRecord;
@@ -109,7 +117,7 @@ export async function getValidAdminAccessToken() {
   // Check 23-hour expiry: If expired or missing, generate fresh token from .env Client ID & Secret
   if (isMissing || isExpired) {
     console.log(
-      `[Shopify Token Engine] Token ${isMissing ? "missing" : "expired (23h limit reached)"}. Automatically regenerating fresh token in database...`
+      `[Shopify Token Engine] Token ${isMissing ? "missing" : "expired (23h reached)"}. Automatically regenerating fresh token from Shopify...`
     );
     dbRecord = await refreshShopifyAccessToken({
       clientId: process.env.SHOPIFY_CLIENT_ID || dbRecord.clientId,
