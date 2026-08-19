@@ -555,13 +555,13 @@ export default function TemplateManager() {
                         </span>
                       ) : (
                         productTypes.map((pId) => {
-                          const prod = DEFAULT_PRODUCTS.find((p) => p.id === pId);
+                          const prod = dynamicProducts.find((p) => p.id === pId);
                           return (
                             <span
                               key={pId}
                               className="px-2 py-0.5 rounded-lg text-[10px] font-bold bg-blue-50 text-blue-700 dark:bg-blue-950/60 dark:text-blue-400 border border-blue-200 dark:border-blue-900"
                             >
-                              {prod ? `${prod.icon} ${prod.name}` : pId}
+                              {prod ? `${prod.icon || "🛍️"} ${prod.name}` : pId}
                             </span>
                           );
                         })
