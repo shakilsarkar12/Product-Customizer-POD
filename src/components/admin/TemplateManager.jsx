@@ -16,10 +16,12 @@ import {
   FiTag,
   FiCheckCircle,
   FiSliders,
+  FiImage,
 } from "react-icons/fi";
 import Link from "next/link";
 import { CLIPARTS_DATA, FONTS_LIST } from "@/data/customizerData";
 import ProductPrintAreaConfigurator from "./ProductPrintAreaConfigurator";
+import ShopifyMediaPickerModal from "./ShopifyMediaPickerModal";
 
 const AVAILABLE_CATEGORIES = [
   "All",
@@ -46,6 +48,7 @@ export default function TemplateManager() {
   // Modal State for Create & Edit
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingTemplateId, setEditingTemplateId] = useState(null); // null = Create, string = Edit
+  const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [saving, setSaving] = useState(false);
   const [deleteConfirmId, setDeleteConfirmId] = useState(null);
   const [toastMessage, setToastMessage] = useState(null);
@@ -687,6 +690,29 @@ export default function TemplateManager() {
                 </div>
               </div>
 
+              {/* Template Mockup Thumbnail Image */}
+              <div>
+                <div className="flex items-center justify-between mb-1">
+                  <label className="block text-xs font-bold text-gray-700 dark:text-gray-300">
+                    Template Mockup Image URL
+                  </label>
+                  <button
+                    type="button"
+                    onClick={() => setIsMediaPickerOpen(true)}
+                    className="text-[11px] font-bold text-brand-600 dark:text-brand-400 hover:underline flex items-center gap-1 cursor-pointer"
+                  >
+                    <FiImage className="w-3 h-3" /> Pick from Shopify Files
+                  </button>
+                </div>
+                <input
+                  type="text"
+                  placeholder="e.g. /images/product/product-01.jpg or Shopify CDN URL"
+                  value={formData.thumbnail}
+                  onChange={(e) => setFormData({ ...formData, thumbnail: e.target.value })}
+                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white font-mono"
+                />
+              </div>
+
               {/* Product Assignment Multi-Selector */}
               <div className="p-4 bg-gray-50/80 dark:bg-gray-900/60 rounded-2xl border border-gray-200 dark:border-gray-700">
                 <label className="block text-xs font-bold text-gray-800 dark:text-white mb-1">
@@ -931,6 +957,16 @@ export default function TemplateManager() {
           </div>
         </div>
       )}
+
+      {/* Shopify Files Media Picker Modal */}
+      <ShopifyMediaPickerModal
+        isOpen={isMediaPickerOpen}
+        onClose={() => setIsMediaPickerOpen(false)}
+        onSelectImage={(url) => {
+          setFormData((prev) => ({ ...prev, thumbnail: url }));
+          showToast("Template image updated from Shopify Files!");
+        }}
+      />
     </div>
   );
 }
