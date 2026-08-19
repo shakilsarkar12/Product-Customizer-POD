@@ -43,6 +43,10 @@ export default function ProductPrintAreaConfigurator() {
   const [isMediaPickerOpen, setIsMediaPickerOpen] = useState(false);
   const [mediaPickerTarget, setMediaPickerTarget] = useState("current-view"); // 'current-view' | 'new-front' | 'new-back'
   const [uploadingImage, setUploadingImage] = useState(false);
+
+  // Dynamic Custom View Management State
+  const [isAddViewModalOpen, setIsAddViewModalOpen] = useState(false);
+  const [newViewLabel, setNewViewLabel] = useState("");
   const fileInputRef = useRef(null);
   const addModalFrontInputRef = useRef(null);
   const addModalBackInputRef = useRef(null);
@@ -233,6 +237,45 @@ export default function ProductPrintAreaConfigurator() {
       handleUpdatePrintArea("width", 60);
       handleUpdatePrintArea("height", 68);
     }
+  };
+
+  // Add New Custom View (e.g. Left Sleeve, Right Sleeve, Side View, Collar)
+  const handleAddCustomView = (viewLabel) => {
+    if (!currentProduct || !viewLabel?.trim()) return;
+    const cleanLabel = viewLabel.trim();
+    const viewId = cleanLabel.toLowerCase().replace(/[^a-z0-9]+/g, "-") + "-" + Date.now().toString().slice(-4);
+    const newView = {
+      id: viewId,
+      label: cleanLabel,
+      image: currentProduct.views?.[0]?.image || "/images/product/product-01.jpg",
+      printArea: { x: 30, y: 25, width: 40, height: 40 },
+    };
+    const updatedViews = [...(currentProduct.views || []), newView];
+    const updatedProd = { ...currentProduct, views: updatedViews };
+    setProducts((prev) => prev.map((p) => (p.id === currentProduct.id ? updatedProd : p)));
+    setActiveViewKey(viewId);
+    handleSaveProduct(updatedProd);
+    setIsAddViewModalOpen(false);
+    setNewViewLabel("");
+    showToast(`Added custom view: "${cleanLabel}"!`);
+  };
+
+  // Delete a View
+  const handleDeleteView = (viewIdToDelete, e) => {
+    if (e) e.stopPropagation();
+    if (!currentProduct || (currentProduct.views?.length || 0) <= 1) {
+      showToast("A product must have at least one view.");
+      return;
+    }
+    const target = currentProduct.views.find((v) => v.id === viewIdToDelete);
+    if (!confirm(`Are you sure you want to remove the view "${target?.label || viewIdToDelete}"?`)) return;
+
+    const updatedViews = currentProduct.views.filter((v) => v.id !== viewIdToDelete);
+    const updatedProd = { ...currentProduct, views: updatedViews };
+    setProducts((prev) => prev.map((p) => (p.id === currentProduct.id ? updatedProd : p)));
+    setActiveViewKey(updatedViews[0].id);
+    handleSaveProduct(updatedProd);
+    showToast("View removed.");
   };
 
   // Save Product to DB
@@ -427,24 +470,46 @@ export default function ProductPrintAreaConfigurator() {
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-6">
           {/* Left Column: Visual Print Area Interactive Canvas */}
           <div className="lg:col-span-7 bg-white dark:bg-gray-800 rounded-3xl p-6 border border-gray-200 dark:border-gray-700 shadow-sm flex flex-col items-center justify-between">
-            {/* View Switcher Pills */}
-            <div className="w-full flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 pb-4 mb-4">
-              <div className="flex items-center gap-2">
-                <span className="text-xs font-bold text-gray-400 uppercase">View:</span>
-                <div className="flex items-center gap-1 bg-gray-100 dark:bg-gray-900 p-1 rounded-xl">
-                  {currentProduct.views?.map((v) => (
-                    <button
-                      key={v.id}
-                      onClick={() => setActiveViewKey(v.id)}
-                      className={`px-3 py-1 text-xs font-bold rounded-lg transition-all ${
-                        (currentView.id || activeViewKey) === v.id
-                          ? "bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-xs"
-                          : "text-gray-500 hover:text-gray-800 dark:text-gray-400"
-                      }`}
-                    >
-                      {v.label}
-                    </button>
-                  ))}
+            {/* Dynamic View Switcher Bar */}
+            <div className="w-full flex flex-wrap items-center justify-between border-b border-gray-100 dark:border-gray-700/60 pb-4 mb-4 gap-2">
+              <div className="flex flex-wrap items-center gap-2">
+                <span className="text-xs font-bold text-gray-400 uppercase">Product Views:</span>
+                <div className="flex flex-wrap items-center gap-1.5 bg-gray-100 dark:bg-gray-900 p-1.5 rounded-2xl">
+                  {currentProduct.views?.map((v) => {
+                    const isActive = (currentView.id || activeViewKey) === v.id;
+                    return (
+                      <div
+                        key={v.id}
+                        onClick={() => setActiveViewKey(v.id)}
+                        className={`group px-3 py-1 text-xs font-bold rounded-xl transition-all cursor-pointer flex items-center gap-1.5 ${
+                          isActive
+                            ? "bg-white dark:bg-gray-700 text-brand-600 dark:text-brand-400 shadow-xs"
+                            : "text-gray-500 hover:text-gray-800 dark:text-gray-400 hover:bg-gray-200/60 dark:hover:bg-gray-800"
+                        }`}
+                      >
+                        <span>{v.label}</span>
+                        {(currentProduct.views?.length || 0) > 1 && (
+                          <button
+                            type="button"
+                            onClick={(e) => handleDeleteView(v.id, e)}
+                            className="opacity-0 group-hover:opacity-100 p-0.5 hover:text-red-500 rounded transition-opacity"
+                            title={`Delete ${v.label}`}
+                          >
+                            <FiTrash2 className="w-3 h-3" />
+                          </button>
+                        )}
+                      </div>
+                    );
+                  })}
+
+                  <button
+                    type="button"
+                    onClick={() => setIsAddViewModalOpen(true)}
+                    className="px-2.5 py-1 text-xs font-extrabold text-brand-600 dark:text-brand-400 hover:bg-brand-50 dark:hover:bg-brand-950/50 rounded-xl transition-all flex items-center gap-1 cursor-pointer"
+                    title="Add custom view (Side, Sleeve, Pocket, etc.)"
+                  >
+                    <FiPlus className="w-3.5 h-3.5" /> Add View
+                  </button>
                 </div>
               </div>
 
@@ -910,6 +975,84 @@ export default function ProductPrintAreaConfigurator() {
                   className="px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-xs cursor-pointer"
                 >
                   Create Product
+                </button>
+              </div>
+            </form>
+          </div>
+        </div>
+      )}
+
+      {/* Add Custom View Modal */}
+      {isAddViewModalOpen && (
+        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
+          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-md w-full shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in zoom-in-95">
+            <h3 className="text-base font-bold text-gray-900 dark:text-white">Add Custom Product View</h3>
+            <p className="text-xs text-gray-500 dark:text-gray-400 mt-1 mb-4">
+              Add a new customizable angle (such as Left Sleeve, Right Sleeve, Side View, or Collar).
+            </p>
+
+            {/* Quick View Presets */}
+            <div className="mb-4">
+              <label className="block text-[11px] font-bold text-gray-400 uppercase mb-2">
+                Quick Presets:
+              </label>
+              <div className="flex flex-wrap gap-1.5">
+                {[
+                  "Left Sleeve",
+                  "Right Sleeve",
+                  "Left Side View",
+                  "Right Side View",
+                  "Collar View",
+                  "Pocket Area",
+                  "Full Back View",
+                ].map((presetName) => (
+                  <button
+                    key={presetName}
+                    type="button"
+                    onClick={() => handleAddCustomView(presetName)}
+                    className="px-3 py-1.5 text-xs font-semibold bg-gray-100 hover:bg-brand-50 hover:text-brand-600 dark:bg-gray-700 dark:hover:bg-brand-950/50 dark:hover:text-brand-400 text-gray-700 dark:text-gray-200 rounded-xl transition-all border border-transparent hover:border-brand-300 dark:hover:border-brand-800 cursor-pointer"
+                  >
+                    + {presetName}
+                  </button>
+                ))}
+              </div>
+            </div>
+
+            <form
+              onSubmit={(e) => {
+                e.preventDefault();
+                handleAddCustomView(newViewLabel);
+              }}
+              className="space-y-4"
+            >
+              <div>
+                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
+                  Or Custom View Name *
+                </label>
+                <input
+                  type="text"
+                  required
+                  placeholder="e.g. Inside Tag / Left Sleeve"
+                  value={newViewLabel}
+                  onChange={(e) => setNewViewLabel(e.target.value)}
+                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white"
+                  autoFocus
+                />
+              </div>
+
+              <div className="pt-3 border-t border-gray-200 dark:border-gray-700 flex items-center justify-end gap-2">
+                <button
+                  type="button"
+                  onClick={() => setIsAddViewModalOpen(false)}
+                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-xl cursor-pointer"
+                >
+                  Cancel
+                </button>
+                <button
+                  type="submit"
+                  className="px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-xs cursor-pointer"
+                >
+                  Add View
                 </button>
               </div>
             </form>
