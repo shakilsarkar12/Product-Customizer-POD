@@ -28,14 +28,6 @@ export default function ProductPrintAreaConfigurator() {
   const [syncingShopify, setSyncingShopify] = useState(false);
   const [toastMessage, setToastMessage] = useState(null);
 
-  // Shopify Token Modal State
-  const [isCredentialsModalOpen, setIsCredentialsModalOpen] = useState(false);
-  const [credentialsForm, setCredentialsForm] = useState({
-    shopDomain: "t-customizer-mjng1g1b.myshopify.com",
-    accessToken: "",
-  });
-  const [savingToken, setSavingToken] = useState(false);
-
   // New Product Modal State
   const [isAddModalOpen, setIsAddModalOpen] = useState(false);
   const [newProductForm, setNewProductForm] = useState({
@@ -79,47 +71,12 @@ export default function ProductPrintAreaConfigurator() {
         await fetchProducts();
       } else {
         showToast(data.error || "Shopify sync failed.");
-        setIsCredentialsModalOpen(true); // Open modal to help user input real token
       }
     } catch (err) {
       console.error("[Sync Shopify Error]:", err);
-      showToast("Shopify sync failed. Check network or credentials.");
-      setIsCredentialsModalOpen(true);
+      showToast("Shopify sync failed: " + err.message);
     } finally {
       setSyncingShopify(false);
-    }
-  };
-
-  // Save Token and Sync
-  const handleSaveTokenAndSync = async (e) => {
-    e.preventDefault();
-    if (!credentialsForm.accessToken.trim()) {
-      showToast("Please enter your Admin API Access Token.");
-      return;
-    }
-    setSavingToken(true);
-    try {
-      const res = await fetch("/api/shopify/credentials", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          shopDomain: credentialsForm.shopDomain.trim(),
-          accessToken: credentialsForm.accessToken.trim(),
-        }),
-      });
-
-      if (res.ok) {
-        showToast("Token saved! Fetching products from Shopify...");
-        setIsCredentialsModalOpen(false);
-        await handleSyncShopify();
-      } else {
-        throw new Error("Failed to save credentials");
-      }
-    } catch (err) {
-      console.error("[Save Token Error]:", err);
-      showToast("Failed to save token.");
-    } finally {
-      setSavingToken(false);
     }
   };
 
@@ -776,101 +733,6 @@ export default function ProductPrintAreaConfigurator() {
                   className="px-4 py-2 text-xs font-bold bg-brand-500 hover:bg-brand-600 text-white rounded-xl shadow-xs cursor-pointer"
                 >
                   Create Product
-                </button>
-              </div>
-            </form>
-          </div>
-        </div>
-      )}
-
-      {/* Shopify Token Connection Modal */}
-      {isCredentialsModalOpen && (
-        <div className="fixed inset-0 z-[99999] bg-black/75 backdrop-blur-sm flex items-center justify-center p-4">
-          <div className="bg-white dark:bg-gray-800 rounded-3xl max-w-lg w-full shadow-2xl border border-gray-200 dark:border-gray-700 p-6 animate-in fade-in zoom-in-95">
-            <div className="flex items-center justify-between pb-3 border-b border-gray-100 dark:border-gray-700">
-              <h3 className="text-base font-bold text-gray-900 dark:text-white flex items-center gap-2">
-                <FiShoppingBag className="w-5 h-5 text-emerald-500" /> Connect Shopify Admin Token
-              </h3>
-              <button
-                onClick={() => setIsCredentialsModalOpen(false)}
-                className="text-gray-400 hover:text-gray-600 dark:hover:text-gray-200"
-              >
-                ✕
-              </button>
-            </div>
-
-            <p className="text-xs text-gray-500 dark:text-gray-400 mt-2 mb-4 leading-relaxed">
-              When published on the Shopify App Store, merchants install with <strong>1-Click Automatic OAuth</strong>. For development or manual setup, choose either option below:
-            </p>
-
-            {/* Option 1: 1-Click OAuth Auto-Install */}
-            <div className="p-3.5 bg-emerald-50 dark:bg-emerald-950/40 rounded-2xl border border-emerald-200 dark:border-emerald-900/60 mb-4 flex items-center justify-between gap-3">
-              <div>
-                <span className="font-bold text-xs text-emerald-800 dark:text-emerald-300 block">
-                  Method 1: 1-Click Public App OAuth Install
-                </span>
-                <span className="text-[10px] text-gray-600 dark:text-gray-400">
-                  Redirects to Shopify consent screen & auto-configures products instantly.
-                </span>
-              </div>
-              <a
-                href={`/api/shopify/auth?shop=${credentialsForm.shopDomain}`}
-                className="px-3 py-1.5 bg-emerald-600 hover:bg-emerald-700 text-white font-bold text-xs rounded-xl shadow-xs shrink-0 inline-flex items-center gap-1"
-              >
-                <FiExternalLink className="w-3 h-3" /> Auto Install &rarr;
-              </a>
-            </div>
-
-            <div className="relative flex py-1 items-center mb-3">
-              <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-              <span className="flex-shrink mx-3 text-[10px] uppercase font-bold text-gray-400">OR Method 2: Custom App Token</span>
-              <div className="flex-grow border-t border-gray-200 dark:border-gray-700"></div>
-            </div>
-
-            <form onSubmit={handleSaveTokenAndSync} className="space-y-4">
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Shopify Store Domain
-                </label>
-                <input
-                  type="text"
-                  required
-                  placeholder="your-store.myshopify.com"
-                  value={credentialsForm.shopDomain}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, shopDomain: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white font-mono"
-                />
-              </div>
-
-              <div>
-                <label className="block text-xs font-bold text-gray-700 dark:text-gray-300 mb-1">
-                  Admin API Access Token * (<span className="text-emerald-500 font-mono font-normal">shpat_...</span>)
-                </label>
-                <input
-                  type="password"
-                  required
-                  placeholder="shpat_xxxxxxxxxxxxxxxxxxxxxxxxxxxx"
-                  value={credentialsForm.accessToken}
-                  onChange={(e) => setCredentialsForm({ ...credentialsForm, accessToken: e.target.value })}
-                  className="w-full px-3.5 py-2 text-xs bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 rounded-xl dark:text-white font-mono"
-                />
-              </div>
-
-              <div className="flex items-center justify-end gap-2 pt-2">
-                <button
-                  type="button"
-                  onClick={() => setIsCredentialsModalOpen(false)}
-                  className="px-4 py-2 text-xs font-bold text-gray-600 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-700 rounded-xl"
-                >
-                  Cancel
-                </button>
-                <button
-                  type="submit"
-                  disabled={savingToken}
-                  className="px-5 py-2 text-xs font-bold bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl shadow-md flex items-center gap-1.5 disabled:opacity-50"
-                >
-                  <FiCheck className="w-3.5 h-3.5" />
-                  {savingToken ? "Connecting..." : "Save & Sync Products"}
                 </button>
               </div>
             </form>
