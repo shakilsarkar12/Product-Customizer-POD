@@ -145,19 +145,20 @@ export async function POST(req) {
       }
     }
 
-    // 4. Fallback: If Draft Order API is restricted by store permissions or running in demo mode,
-    // Return direct Storefront Cart Checkout URL with full custom line item attributes
-    const fallbackCartUrl = `https://${cleanShop}/cart`;
+    // 4. Direct Storefront Checkout Permalink Fallback
+    const fallbackCheckoutUrl = variantId
+      ? `https://${cleanShop}/cart/${variantId}:${quantity || 1}`
+      : `https://${cleanShop}/checkout`;
 
     return NextResponse.json({
       success: true,
-      checkoutUrl: fallbackCartUrl,
+      checkoutUrl: fallbackCheckoutUrl,
       orderId: orderId,
       orderName: `#${orderId}`,
       isFallback: true,
       customUnitPrice: Number(customUnitPrice).toFixed(2),
       properties,
-      message: "Customized order metadata prepared successfully!",
+      message: "Customized order prepared for direct checkout!",
     });
   } catch (error) {
     console.error("[Shopify Checkout API Route Error]:", error);

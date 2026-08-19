@@ -574,13 +574,13 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
       });
 
       const data = await res.json();
-      if (data.success && data.checkoutUrl && !data.isFallback) {
-        triggerToast(`✓ Shopify Custom Checkout Generated ($${pricingData.totalPrice.toFixed(2)})! Opening Checkout...`);
+      if (data.success && data.checkoutUrl) {
+        triggerToast(`✓ Opening Shopify Checkout ($${pricingData.totalPrice.toFixed(2)})...`);
         setTimeout(() => {
           safeRedirectTop(data.checkoutUrl);
-        }, 500);
+        }, 300);
       } else {
-        // Fallback to Storefront Cart Add & Checkout
+        // Fallback to Storefront Cart Add & Direct Checkout
         if (typeof window !== "undefined" && window.parent) {
           window.parent.postMessage(
             {
@@ -591,7 +591,12 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
             "*"
           );
         }
-        triggerToast(`✓ Adding to Shopify Checkout ($${pricingData.totalPrice.toFixed(2)})...`);
+        const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
+        const checkoutPermalink = `https://${targetShop}/cart/${cleanVariantId}:${quantity || 1}`;
+        triggerToast(`✓ Redirecting to Shopify Checkout...`);
+        setTimeout(() => {
+          safeRedirectTop(checkoutPermalink);
+        }, 400);
       }
     } catch (err) {
       console.error("[Direct Checkout Error]:", err);
@@ -606,9 +611,10 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         );
       }
       const targetShop = paramShop || "t-customizer-mjng1g1b.myshopify.com";
+      const checkoutPermalink = `https://${targetShop}/cart/${cleanVariantId}:${quantity || 1}`;
       setTimeout(() => {
-        safeRedirectTop(`https://${targetShop}/cart`);
-      }, 700);
+        safeRedirectTop(checkoutPermalink);
+      }, 500);
     } finally {
       setIsCheckingOut(false);
     }
