@@ -17,6 +17,8 @@ export async function POST(req) {
       quantity = 1,
       customUnitPrice = 25.0,
       totalPrice,
+      discountPercent = 0,
+      discountAmount = 0,
       selectedColor,
       selectedSize = "L",
       selectedMaterial,
@@ -26,6 +28,18 @@ export async function POST(req) {
     } = body;
 
     const orderId = `POD-${Date.now().toString(36).toUpperCase()}-${Math.floor(1000 + Math.random() * 9000)}`;
+
+    // Format applied discount for bulk volume tiers
+    let appliedDiscount = null;
+    if (Number(discountAmount) > 0 || Number(discountPercent) > 0) {
+      appliedDiscount = {
+        title: `Bulk Volume Discount (${discountPercent}% OFF)`,
+        description: `Customizer Volume Tier Savings for ${quantity} items`,
+        value: Number(discountPercent) > 0 ? String(discountPercent) : String(discountAmount),
+        value_type: Number(discountPercent) > 0 ? "percentage" : "fixed_amount",
+        amount: Number(discountAmount).toFixed(2),
+      };
+    }
 
     // 1. Format Line Item Properties for Shopify Order & Factory Production
     const properties = [
@@ -102,10 +116,15 @@ export async function POST(req) {
                 price: Number(customUnitPrice).toFixed(2),
                 quantity: Math.max(1, parseInt(quantity) || 1),
                 requires_shipping: true,
+                taxable: false,
                 properties: properties,
               },
             ],
-            note: `Customized POD Product Order • Ref: ${orderId}`,
+            applied_discount: appliedDiscount,
+            taxes_included: true,
+            note: `Customized POD Product Order • Ref: ${orderId}${
+              discountAmount > 0 ? ` • Bulk Tier Savings: -$${Number(discountAmount).toFixed(2)} (${discountPercent}%)` : ""
+            }`,
             tags: "POD_Customized, Customizer_Studio, Custom_Price",
             use_customer_default_address: true,
           },

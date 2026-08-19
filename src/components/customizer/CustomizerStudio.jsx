@@ -547,6 +547,7 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         "Color": selectedColor?.name || "Default",
         "Material": currentProduct.materials?.find((m) => m.id === selectedMaterialId)?.name || "Standard",
         "Custom Unit Price": `$${pricingData.unitPrice.toFixed(2)}`,
+        "Bulk Discount": pricingData.discountAmount > 0 ? `${pricingData.discountPercent}% (-$${pricingData.discountAmount.toFixed(2)})` : "None",
         "Total Price": `$${pricingData.totalPrice.toFixed(2)}`,
       },
     };
@@ -560,6 +561,8 @@ export default function CustomizerStudio({ initialProducts = [], initialTemplate
         quantity,
         customUnitPrice: pricingData.unitPrice,
         totalPrice: pricingData.totalPrice,
+        discountPercent: pricingData.discountPercent || 0,
+        discountAmount: pricingData.discountAmount || 0,
         selectedColor,
         selectedSize,
         selectedMaterial: currentProduct.materials?.find((m) => m.id === selectedMaterialId),
